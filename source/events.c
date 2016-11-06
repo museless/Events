@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.03 15:05
+ *     modification time: 2016.11.06 00:00
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -37,28 +37,20 @@
 
 #define IS_INVAILD_POOL(pool) \
     do { \
-        if (!pool || !pool->evs) { \
+        if (!pool) { \
             errno = EINVAL; \
             return  false; \
         } \
     } while (0)
 
+#define PROC_EVENT(ev, has_event, proc) \
+    if (has_event && ev->proc) \
+        ev->proc(ev->fd);
+
 
 /*---------------------------------------------
  *          Part Three: Local function
 -*---------------------------------------------*/
-
-static void    *_block_alloc(Mempool *pool, uint size);
-
-static void    *_chunk_alloc(Mempool *pool, uint size);
-static void    *_chunk_divide(Chunk *chunk, uint size, uint border);
-static void    *_chunk_new(Mempool *pool, uint size);
-static bool     _block_free(Mempool *pool, void *addr);
-
-static Block   *_block_search(Block *block, void *addr);
-static Chunk   *_chunk_search(Mempool *pool, void *addr);
-
-static void     _chunk_record(Mempool *pool, void *chunk);
 
 
 /*---------------------------------------------
@@ -70,20 +62,17 @@ static void     _chunk_record(Mempool *pool, void *chunk);
 -*---------------------------------------------*/
 
 /*-----events_create-----*/
-bool events_create(Eventpool *pool, int32_t init_size)
+bool events_create(Eventpool *pool, uint32_t max_proc)
 {
-    if (!pool || init_size < 1) {
+    if (!pool || max_proc < 1) {
         errno = EINVAL;
         return  false;
     }
 
-    if (!(pool->evs = calloc(init_size, PER_PEV_SIZE)))
-        return  false;
-
     if ((pool->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
         return  false;
 
-    pool->ep_currsize = pool->ep_fsize = init_size; 
+    pool->ev_maxproc = max_proc; 
     pool->ev_cnt = 0;
 
     return  true;
@@ -98,10 +87,7 @@ bool events_destroy(Eventpool *pool)
     if (close(pool->ep_fd) == -1)
         return  false;
 
-    free(pool->evs);
-    
-    pool->evs = NULL;
-    pool->ev_cnt = pool->ep_currsize = pool->ep_fsize = 0;
+    pool->ev_cnt = pool->ev_maxproc = 0;
     pool->ep_fd = 0;
 
     return  true;
@@ -116,15 +102,33 @@ bool events_destroy(Eventpool *pool)
 -*---------------------------------------------*/
 
 /*-----events_runforever-----*/
-void events_run(Eventpool *pool, int32_t times, int32_t timeout)
+bool events_run(Eventpool *pool, int32_t times, int32_t timeout)
 {
     IS_INVAILD_POOL(pool);
 
-    int32_t nevents, cnt = 0;
+    int32_t     nevents, cnt = 0;
+    Epollev    *eventlist = alloca(pool->ev_maxproc * PER_PEV_SIZE);
 
-    while (times == -1 || cnt < times) {
-        nevents = epoll_wait(pool->ep_fd, pool->evs, pool->ev_cnt, timeout);
-        cnt++;
+    if (!eventlist)
+        return  false;
+
+    while (times == INF_TIMES || cnt++ < times) {
+        nevents = epoll_wait(pool->ep_fd, eventlist, pool->ev_maxproc, timeout);
+
+        if (nevents == -1)
+            return  false;
+
+        for (int32_t idx = 0; idx < nevents; idx++) {
+            Event   *ev = (Event *)eventlist[idx].data.ptr;
+            int32_t  epev = eventlist[idx].events; 
+
+            PROC_EVENT(ev, epev & EPOLLIN, reader);
+            PROC_EVENT(ev, epev & EPOLLOUT, writer);
+            PROC_EVENT(ev, epev & EPOLLHUP, hanger);
+            PROC_EVENT(ev, epev & EPOLLERR, errer);
+        }
     }
+
+    return  true;
 }
 

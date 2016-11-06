@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.03 14:45
+ *     modification time: 2016.11.06 23:00
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -38,19 +39,24 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 
+#include "mempool/mempool.h"
+
 
 /*---------------------------------------------
  *            Part One: Define
 -*---------------------------------------------*/
 
-#define ENLARGE_TIMES   2
+#define INF_TIMES   -1
 
 
 /*---------------------------------------------
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef struct int32_t      (*evfunctor)(void);
+typedef bool    (*evread)(int32_t fd);
+typedef bool    (*evwrite)(int32_t fd);
+typedef bool    (*evhang)(int32_t fd);
+typedef bool    (*everr)(int32_t fd);
 
 typedef struct epoll_event  Epollev;
 
@@ -65,16 +71,17 @@ typedef struct event        Event;
 struct events {
     int32_t     ep_fd;
 
-    int32_t     ep_fsize;   /* event pool initialize size */
-    int32_t     ep_currsize;/* event pool current size */
-
     uint32_t    ev_cnt;
-    Epollev    *evs;
+    uint32_t    ev_maxproc;     /* max process per time */
 };
 
 struct event {
     int32_t     fd;
-    evfunctor   functor;
+
+    evread      reader; /* function deal with read event */
+    evwrite     writer; /* function deal with write event */
+    evhang      hanger; /* function deal with hang up event */
+    everr       errer;  /* function deal with error event */
 };
 
 
@@ -82,9 +89,9 @@ struct event {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-bool    events_create(Eventpool *pool, int32_t init_size);
+bool    events_create(Eventpool *pool, uint32_t max_proc);
 bool    events_destroy(Eventpool *pool);
 
-void    events_run(Eventpool *pool, int32_t times, int32_t timeout);
+bool    events_run(Eventpool *pool, int32_t times, int32_t timeout);
 
 
