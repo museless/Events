@@ -39,7 +39,12 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 
-#include "mempool/mempool.h"
+#include <pthread.h>
+
+#include "satomic.h"
+#include "mempool.h"
+
+#include "singlelist.h"
 
 
 /*---------------------------------------------
@@ -60,6 +65,8 @@ typedef bool    (*everr)(int32_t fd);
 
 typedef struct epoll_event  Epollev;
 
+typedef pthread_mutex_t     Mutex;
+
 typedef struct events       Eventpool;
 typedef struct event        Event;
 
@@ -73,15 +80,23 @@ struct events {
 
     uint32_t    ev_cnt;
     uint32_t    ev_maxproc;     /* max process per time */
+
+    Mutex       ev_poollock;    /* lock pool */
+    Mempool     ev_mempool;     /* memory pool */
+
+    SingleList  ev_list;        /* list of event */
 };
 
 struct event {
+    ListData   *next;
     int32_t     fd;
 
     evread      reader; /* function deal with read event */
     evwrite     writer; /* function deal with write event */
     evhang      hanger; /* function deal with hang up event */
     everr       errer;  /* function deal with error event */
+
+    bool        need_del;
 };
 
 
