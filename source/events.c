@@ -200,14 +200,14 @@ bool event_delete(Eventpool *pool, int32_t fd)
 {
     LOCK_POOL(pool);
 
-    bool    result = true;
-
-    if (!_event_delete(pool, fd))
-        result = false;
+    if (!_event_delete(pool, fd)) {
+        UNLOCK_POOL(pool);
+        return  false;
+    }
 
     UNLOCK_POOL(pool);
 
-    return  result;
+    return  true;
 }
 
 
