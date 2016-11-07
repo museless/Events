@@ -62,6 +62,11 @@
 
 
 /*---------------------------------------------
+ *          Part Three: Local data
+-*---------------------------------------------*/
+
+
+/*---------------------------------------------
  *          Part Three: Local function
 -*---------------------------------------------*/
 
@@ -158,7 +163,6 @@ bool events_run(Eventpool *pool, int32_t times, int32_t timeout)
 
             PROC_EVENT(ev, epev & EPOLLIN, reader);
             PROC_EVENT(ev, epev & EPOLLOUT, writer);
-            PROC_EVENT(ev, epev & EPOLLHUP, hanger);
             PROC_EVENT(ev, epev & EPOLLERR, errer);
 
             if (ev->need_del && !_event_delete(pool, ev->fd))
@@ -178,17 +182,26 @@ bool events_run(Eventpool *pool, int32_t times, int32_t timeout)
  *          1. event_set_delete
  *          2. event_delete
  *
+ *          3. event_add_socket
+ *          4. event_add_timer
+ *          5. event_add_signal
+ *
 -*---------------------------------------------*/
 
 /*-----event_set_delete-----*/
 bool event_set_delete(Eventpool *pool, int32_t fd)
 {
+    LOCK_POOL(pool);
+
     Event  *ev = list_search(&pool->ev_list, &fd);
 
     if (ev) {
         ev->need_del = true;
+        UNLOCK_POOL(pool);
         return  true;
     }
+
+    UNLOCK_POOL(pool);
 
     errno = ENOENT; 
     return  false;
@@ -208,6 +221,30 @@ bool event_delete(Eventpool *pool, int32_t fd)
     UNLOCK_POOL(pool);
 
     return  true;
+}
+
+
+/*-----event_add_socket-----*/
+int32_t event_add_socket(Eventpool *pool, int32_t events, 
+        evread reader, evwrite writer, everr errer)
+{
+    return  -1;
+}
+
+
+/*-----event_add_timer-----*/
+int32_t event_add_timer(Eventpool *pool, evread reader,
+        int32_t clockid, int32_t flags)
+{
+    return  -1;
+}
+
+
+/*-----event_add_signal-----*/
+int32_t event_add_signal(Eventpool *pool, int32_t signo,
+        evsignal signproc, int32_t flags)
+{
+    return  -1;
 }
 
 

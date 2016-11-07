@@ -53,6 +53,9 @@
 
 #define INF_TIMES   -1
 
+/* event type */
+#define NOT_EV      -1
+
 
 /*---------------------------------------------
  *            Part Two: Typedef
@@ -60,8 +63,9 @@
 
 typedef bool    (*evread)(int32_t fd);
 typedef bool    (*evwrite)(int32_t fd);
-typedef bool    (*evhang)(int32_t fd);
 typedef bool    (*everr)(int32_t fd);
+
+typedef bool    (*evsignal)(int32_t signo);
 
 typedef struct epoll_event  Epollev;
 
@@ -93,7 +97,6 @@ struct event {
 
     evread      reader; /* function deal with read event */
     evwrite     writer; /* function deal with write event */
-    evhang      hanger; /* function deal with hang up event */
     everr       errer;  /* function deal with error event */
 
     bool        need_del;
@@ -104,9 +107,25 @@ struct event {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-bool    events_create(Eventpool *pool, uint32_t max_proc);
-bool    events_destroy(Eventpool *pool);
+bool    events_create(Eventpool *pool, uint32_t max_proc)
+        __attribute__((nonnull(1)));
 
-bool    events_run(Eventpool *pool, int32_t times, int32_t timeout);
+bool    events_destroy(Eventpool *pool)
+        __attribute__((nonnull(1)));
+
+bool    events_run(Eventpool *pool, int32_t times, int32_t timeout)
+        __attribute__((nonnull(1)));
+
+int32_t event_add_socket(Eventpool *pool, int32_t events, 
+        evread reader, evwrite writer, everr errer)
+        __attribute__((nonnull(1)));
+
+int32_t event_add_timer(Eventpool *pool, evread reader,
+        int32_t clockid, int32_t flags)
+        __attribute__((nonnull(1)));
+
+int32_t event_add_signal(Eventpool *pool, int32_t signo,
+        evsignal signproc, int32_t flags)
+        __attribute__((nonnull(1)));
 
 
