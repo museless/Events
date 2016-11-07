@@ -39,6 +39,8 @@ bool list_init(SingleList *list, _ele_cmper cmper)
     list->cnt = 0;
     list->cmper = cmper;
 
+    mato_init(list->lock, 1);
+
     return  true;
 }
 
@@ -51,6 +53,8 @@ bool list_insert(SingleList *list, void *data)
         return  false;
     }
 
+    mato_lock(list->lock);
+
     ListData   *node = (ListData *)data;
 
     if (!list->head)
@@ -62,6 +66,8 @@ bool list_insert(SingleList *list, void *data)
     node->next = NULL;
     list->tail = node;
     list->cnt += 1;
+
+    mato_unlock(list->lock);
 
     return  true;
 }
@@ -89,8 +95,10 @@ bool list_empty(SingleList *list)
         return  false;
     }
 
+    mato_lock(list->lock);
     list->head = list->tail = NULL;
     list->cnt = 0;
+    mato_unlock(list->lock);
 
     return  true;
 }
@@ -105,6 +113,8 @@ void *_list_operate(SingleList *list, void *data, bool is_del)
     }
 
     ListData  *node, *save = NULL;
+
+    mato_lock(list->lock);
 
     for (node = list->head; node; save = node, node = node->next) {
         if (list->cmper(node, data)) {
@@ -121,9 +131,13 @@ void *_list_operate(SingleList *list, void *data, bool is_del)
                 list->cnt -= 1;
             }
 
+            mato_unlock(list->lock);
+
             return  node;
         }
     }
+
+    mato_unlock(list->lock);
 
     return  NULL;
 }

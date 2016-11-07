@@ -125,6 +125,7 @@ bool events_destroy(Eventpool *pool)
         return  false;
 
     pool->ep_fd = 0;
+    mmdp_free_pool(&pool->ev_mempool);
 
     int32_t res;
 
@@ -132,15 +133,14 @@ bool events_destroy(Eventpool *pool)
         errno = res;
         return  false;
     }
-     
-    mmdp_free_pool(&pool->ev_mempool);
 
     return  true;
 }
 
 
 /*-----events_run-----*/
-bool events_run(Eventpool *pool, int32_t times, int32_t timeout)
+bool events_run(Eventpool *pool, int32_t times, int32_t timeout,
+     evstart starter, void *params)
 {
     IS_INVAILD_POOL(pool);
     LOCK_POOL(pool);
@@ -152,6 +152,9 @@ bool events_run(Eventpool *pool, int32_t times, int32_t timeout)
         return  false;
 
     while (times == INF_TIMES || cnt++ < times) {
+        if (!starter(params))
+            return  false;
+
         nevents = epoll_wait(pool->ep_fd, eventlist, pool->ev_maxproc, timeout);
 
         if (nevents == -1)
@@ -191,17 +194,12 @@ bool events_run(Eventpool *pool, int32_t times, int32_t timeout)
 /*-----event_set_delete-----*/
 bool event_set_delete(Eventpool *pool, int32_t fd)
 {
-    LOCK_POOL(pool);
-
     Event  *ev = list_search(&pool->ev_list, &fd);
 
     if (ev) {
         ev->need_del = true;
-        UNLOCK_POOL(pool);
         return  true;
     }
-
-    UNLOCK_POOL(pool);
 
     errno = ENOENT; 
     return  false;
@@ -211,16 +209,7 @@ bool event_set_delete(Eventpool *pool, int32_t fd)
 /*-----event_delete-----*/
 bool event_delete(Eventpool *pool, int32_t fd)
 {
-    LOCK_POOL(pool);
-
-    if (!_event_delete(pool, fd)) {
-        UNLOCK_POOL(pool);
-        return  false;
-    }
-
-    UNLOCK_POOL(pool);
-
-    return  true;
+    return  _event_delete(pool, fd);
 }
 
 

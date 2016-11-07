@@ -67,6 +67,8 @@ typedef bool    (*everr)(int32_t fd);
 
 typedef bool    (*evsignal)(int32_t signo);
 
+typedef bool    (*evstart)(void *params);
+
 typedef struct epoll_event  Epollev;
 
 typedef pthread_mutex_t     Mutex;
@@ -113,10 +115,11 @@ bool    events_create(Eventpool *pool, uint32_t max_proc)
 bool    events_destroy(Eventpool *pool)
         __attribute__((nonnull(1)));
 
-bool    events_run(Eventpool *pool, int32_t times, int32_t timeout)
+bool    events_run(Eventpool *pool, int32_t times, int32_t timeout,
+        evstart starter, void *params)
         __attribute__((nonnull(1)));
 
-int32_t event_add_socket(Eventpool *pool, int32_t events, 
+int32_t event_add_socket(Eventpool *pool, int32_t events,
         evread reader, evwrite writer, everr errer)
         __attribute__((nonnull(1)));
 

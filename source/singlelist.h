@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include "satomic.h"
+
 
 /* typedef */
 typedef struct listdata     ListData;
@@ -26,6 +28,8 @@ struct singlelist {
 
     int32_t     cnt;
     _ele_cmper  cmper;
+
+    MATOS       lock;
 };
 
 
