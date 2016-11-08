@@ -29,6 +29,15 @@
 
 
 /*---------------------------------------------
+ *         Part Three: Local function 
+-*---------------------------------------------*/
+
+#define EVENT_ACTION(action, triggered, epfd, fd, handler) \
+    if (triggered && (action).handler) \
+        (action).handler(epfd, fd);
+
+
+/*---------------------------------------------
  *    Part Four: Events control api
  *
  *          1. events_create
@@ -40,7 +49,7 @@
 /*-----events_create-----*/
 bool events_create(Events *events, uint32_t max_proc, Evaction *action)
 {
-    if (!events || max_proc < 1 || !action) {
+    if (!events || max_proc < 1) {
         errno = EINVAL;
         return  false;
     }
@@ -48,8 +57,14 @@ bool events_create(Events *events, uint32_t max_proc, Evaction *action)
     if ((events->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
         return  false;
 
+    events->ev_actioner.reader =
+        events->ev_actioner.writer =
+        events->ev_actioner.errorer = NULL;
+
     events->ev_maxproc = max_proc;
-    events->ev_actioner = *action;
+
+    if (action)
+        events->ev_actioner = *action;
 
     return  true;
 }
@@ -84,12 +99,13 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
         return  false;
     }
 
-    int32_t  nevent, cnt = 0;
-    int32_t  epfd = events->ep_fd, maxproc = events->ev_maxproc;
-    Epollev *evlist = alloca(maxproc * sizeof(Epollev));
+    Epollev *evlist = alloca(events->ev_maxproc * sizeof(Epollev));
 
     if (!evlist)
         return  false;
+
+    int32_t  nevent, cnt = 0;
+    int32_t  epfd = events->ep_fd, maxproc = events->ev_maxproc;
 
     while (times == INF_TIMES || cnt++ < times) {
         nevent = epoll_wait(epfd, evlist, maxproc, timeout);
@@ -98,7 +114,16 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
             return  false;
 
         for (int idx = 0; idx < nevent; idx++) {
+            Epollev *ev = evlist + idx;
 
+            EVENT_ACTION(events->ev_actioner,
+                ev->events & EPOLLIN, epfd, ev->data.fd, reader)
+
+            EVENT_ACTION(events->ev_actioner,
+                ev->events & EPOLLOUT, epfd, ev->data.fd, writer)
+
+            EVENT_ACTION(events->ev_actioner,
+                ev->events & EPOLLERR, epfd, ev->data.fd, errorer)
         }
     }
 

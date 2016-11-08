@@ -51,7 +51,7 @@
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef bool    (*ev_handler)(int32_t fd);
+typedef bool    (*ev_handler)(int32_t epfd, int32_t fd);
 
 typedef struct epoll_event  Epollev;
 
