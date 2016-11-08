@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.07 10:00
+ *     modification time: 2016.11.08 22:00
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -29,46 +29,6 @@
 
 
 /*---------------------------------------------
- *             Part One: Define
--*---------------------------------------------*/
-
-#define PER_PEV_SIZE    sizeof(Epollev)
-
-#define IS_INVAILD_POOL(pool) \
-    do { \
-        if (!pool) { \
-            errno = EINVAL; \
-            return  false; \
-        } \
-    } while (0)
-
-#define LOCK_POOL(pool) \
-    do { \
-        int32_t result; \
-        if ((result = pthread_mutex_trylock(&pool->ev_poollock))) { \
-            errno = result; \
-            return  false; \
-        } \
-    } while (0) \
-
-#define UNLOCK_POOL(pool) \
-    pthread_mutex_unlock(&pool->ev_poollock);
-
-
-/*---------------------------------------------
- *          Part Three: Local data
--*---------------------------------------------*/
-
-
-/*---------------------------------------------
- *          Part Three: Local function
--*---------------------------------------------*/
-
-static bool _event_delete(Events *pool, int32_t fd);
-static bool _event_cmper(const void *er, const void *fd);
-
-
-/*---------------------------------------------
  *    Part Four: Events control api
  *
  *          1. events_create
@@ -78,87 +38,69 @@ static bool _event_cmper(const void *er, const void *fd);
 -*---------------------------------------------*/
 
 /*-----events_create-----*/
-bool events_create(Events *pool, uint32_t max_proc)
+bool events_create(Events *events, uint32_t max_proc, Evaction *action)
 {
-    if (!pool || max_proc < 1) {
+    if (!events || max_proc < 1 || !action) {
         errno = EINVAL;
         return  false;
     }
 
-    if ((pool->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
+    if ((events->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
         return  false;
 
-    int32_t res;
-
-    if ((res = pthread_mutex_init(&pool->ev_poollock, NULL))) {
-        errno = res;
-        return  false;
-    }
-
-    pool->ev_maxproc = max_proc; 
+    events->ev_maxproc = max_proc;
+    events->ev_actioner = *action;
 
     return  true;
 }
 
 
 /*-----events_destroy-----*/
-bool events_destroy(Events *pool)
+bool events_destroy(Events *events)
 {
-    IS_INVAILD_POOL(pool);
-    LOCK_POOL(pool);
+    if (!events) {
+        errno = EINVAL;
+        return  false;
+    }
 
-    pool->ev_maxproc = 0;
+    events->ev_maxproc = 0;
 
-    if (close(pool->ep_fd) == -1) {
+    if (close(events->ep_fd) == -1) {
         if (errno == EBADF)
             return  false;
     }
 
-    pool->ep_fd = 0;
-
-    int32_t res;
-
-    if ((res = pthread_mutex_destroy(&pool->ev_poollock))) {
-        errno = res;
-        return  false;
-    }
+    events->ep_fd = 0;
 
     return  true;
 }
 
 
 /*-----events_run-----*/
-bool events_run(Events *pool, int32_t times, int32_t timeout)
+bool events_run(Events *events, int32_t times, int32_t timeout)
 {
-    IS_INVAILD_POOL(pool);
-    LOCK_POOL(pool);
+    if (!events) {
+        errno = EINVAL;
+        return  false;
+    }
 
-    int32_t     nevents, cnt = 0;
-    Epollev    *eventlist = alloca(pool->ev_maxproc * PER_PEV_SIZE);
+    int32_t  nevent, cnt = 0;
+    int32_t  epfd = events->ep_fd, maxproc = events->ev_maxproc;
+    Epollev *evlist = alloca(maxproc * sizeof(Epollev));
 
-    if (!eventlist)
+    if (!evlist)
         return  false;
 
     while (times == INF_TIMES || cnt++ < times) {
-        nevents = epoll_wait(pool->ep_fd, eventlist, pool->ev_maxproc, timeout);
+        nevent = epoll_wait(epfd, evlist, maxproc, timeout);
 
-        if (nevents == -1)
+        if (nevent == -1)
             return  false;
 
-        for (int32_t idx = 0; idx < nevents; idx++) {
-            Event   *ev = (Event *)eventlist[idx].data.ptr;
-            int32_t  epev = eventlist[idx].events; 
+        for (int idx = 0; idx < nevent; idx++) {
 
-            PROC_EVENT(ev, epev & EPOLLIN, reader);
-            PROC_EVENT(ev, epev & EPOLLOUT, writer);
-            PROC_EVENT(ev, epev & EPOLLERR, errer);
-
-            if (ev->need_del && !_event_delete(pool, ev->fd))
-                return  false;
         }
     }
-
-    UNLOCK_POOL(pool);
 
     return  true;
 }
