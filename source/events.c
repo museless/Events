@@ -10,16 +10,14 @@
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *       Source file content Eight part
+ *       Source file content Five part
  *
  *       Part Zero:  Include
  *       Part One:   Define 
  *       Part Two:   Local data
  *       Part Three: Local function
  *
- *       Part Four:  Eventpool control api
- *       Part Five:  Event control api
- *       Part Six:   Eventpool operate
+ *       Part Four:  Events control api
  *
 -*---------------------------------------------*/
 
@@ -56,10 +54,6 @@
 #define UNLOCK_POOL(pool) \
     pthread_mutex_unlock(&pool->ev_poollock);
 
-#define PROC_EVENT(ev, has_event, proc) \
-    if (has_event && ev->proc) \
-        ev->proc(ev->fd);
-
 
 /*---------------------------------------------
  *          Part Three: Local data
@@ -70,12 +64,12 @@
  *          Part Three: Local function
 -*---------------------------------------------*/
 
-static bool _event_delete(Eventpool *pool, int32_t fd);
+static bool _event_delete(Events *pool, int32_t fd);
 static bool _event_cmper(const void *er, const void *fd);
 
 
 /*---------------------------------------------
- *    Part Four: Eventpool control api
+ *    Part Four: Events control api
  *
  *          1. events_create
  *          2. events_destroy
@@ -84,7 +78,7 @@ static bool _event_cmper(const void *er, const void *fd);
 -*---------------------------------------------*/
 
 /*-----events_create-----*/
-bool events_create(Eventpool *pool, uint32_t max_proc)
+bool events_create(Events *pool, uint32_t max_proc)
 {
     if (!pool || max_proc < 1) {
         errno = EINVAL;
@@ -101,31 +95,26 @@ bool events_create(Eventpool *pool, uint32_t max_proc)
         return  false;
     }
 
-    if (!mmdp_create(&pool->ev_mempool, DEF_CHUNKSIZE))
-        return  false;
-
-    if (!list_init(&pool->ev_list, _event_cmper))
-        return  false;
-
     pool->ev_maxproc = max_proc; 
-    pool->ev_cnt = 0;
 
     return  true;
 }
 
 
 /*-----events_destroy-----*/
-bool events_destroy(Eventpool *pool)
+bool events_destroy(Events *pool)
 {
     IS_INVAILD_POOL(pool);
+    LOCK_POOL(pool);
 
-    pool->ev_cnt = pool->ev_maxproc = 0;
+    pool->ev_maxproc = 0;
 
-    if (close(pool->ep_fd) == -1)
-        return  false;
+    if (close(pool->ep_fd) == -1) {
+        if (errno == EBADF)
+            return  false;
+    }
 
     pool->ep_fd = 0;
-    mmdp_free_pool(&pool->ev_mempool);
 
     int32_t res;
 
@@ -139,8 +128,7 @@ bool events_destroy(Eventpool *pool)
 
 
 /*-----events_run-----*/
-bool events_run(Eventpool *pool, int32_t times, int32_t timeout,
-     evstart starter, void *params)
+bool events_run(Events *pool, int32_t times, int32_t timeout)
 {
     IS_INVAILD_POOL(pool);
     LOCK_POOL(pool);
@@ -152,9 +140,6 @@ bool events_run(Eventpool *pool, int32_t times, int32_t timeout,
         return  false;
 
     while (times == INF_TIMES || cnt++ < times) {
-        if (!starter(params))
-            return  false;
-
         nevents = epoll_wait(pool->ep_fd, eventlist, pool->ev_maxproc, timeout);
 
         if (nevents == -1)
@@ -176,100 +161,6 @@ bool events_run(Eventpool *pool, int32_t times, int32_t timeout,
     UNLOCK_POOL(pool);
 
     return  true;
-}
-
-
-/*---------------------------------------------
- *       Part Five: Event control api
- *
- *          1. event_set_delete
- *          2. event_delete
- *
- *          3. event_add_socket
- *          4. event_add_timer
- *          5. event_add_signal
- *
--*---------------------------------------------*/
-
-/*-----event_set_delete-----*/
-bool event_set_delete(Eventpool *pool, int32_t fd)
-{
-    Event  *ev = list_search(&pool->ev_list, &fd);
-
-    if (ev) {
-        ev->need_del = true;
-        return  true;
-    }
-
-    errno = ENOENT; 
-    return  false;
-}
-
-
-/*-----event_delete-----*/
-bool event_delete(Eventpool *pool, int32_t fd)
-{
-    return  _event_delete(pool, fd);
-}
-
-
-/*-----event_add_socket-----*/
-int32_t event_add_socket(Eventpool *pool, int32_t events, 
-        evread reader, evwrite writer, everr errer)
-{
-    return  -1;
-}
-
-
-/*-----event_add_timer-----*/
-int32_t event_add_timer(Eventpool *pool, evread reader,
-        int32_t clockid, int32_t flags)
-{
-    return  -1;
-}
-
-
-/*-----event_add_signal-----*/
-int32_t event_add_signal(Eventpool *pool, int32_t signo,
-        evsignal signproc, int32_t flags)
-{
-    return  -1;
-}
-
-
-/*---------------------------------------------
- *     Part Six: Eventpool operate
- *
- *          1. _event_delete
- *          2. _event_cmper
- *
--*---------------------------------------------*/
-
-/*-----_event_delete-----*/
-bool _event_delete(Eventpool *pool, int32_t fd)
-{
-    Epollev useless;
-
-    if (epoll_ctl(pool->ep_fd, EPOLL_CTL_DEL, fd, &useless) == -1)
-        return  false;
-
-    close(fd);
-
-    Event  *ev = list_delete(&pool->ev_list, &fd);
-
-    if (ev) {
-        mmdp_free(&pool->ev_mempool, ev);
-        return  true;
-    }
-
-    return  false;
-}
-
-
-/*-----_event_cmper-----*/
-bool _event_cmper(const void *er, const void *fd)
-{
-    return  ((Event *)er)->fd == *((int32_t *)fd);
 }
 
 

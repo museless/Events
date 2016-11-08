@@ -6,8 +6,7 @@ CFLAGS	= -g -Wall -std=c99 -D_DEFAULT_SOURCE -pthread
 EXMDP	= test
 
 # obj #
-OMDP	= source/events.c source/example.c source/mempool.c \
-		  source/singlelist.c
+OMDP	= source/events.c source/example.c
 
 # phony #
 .phony:	build
