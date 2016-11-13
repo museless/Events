@@ -49,7 +49,12 @@
 /*-----events_create-----*/
 bool events_create(Events *events, uint32_t max_proc, Evaction *action)
 {
-    if (!events || max_proc < 1) {
+    if (!events || max_proc < 1 || !action)
+        errno = EINVAL;
+        return  false;
+    }
+
+    if (!action->reader && !action->writer && !action->errorer) {
         errno = EINVAL;
         return  false;
     }
@@ -57,14 +62,8 @@ bool events_create(Events *events, uint32_t max_proc, Evaction *action)
     if ((events->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
         return  false;
 
-    events->ev_actioner.reader =
-        events->ev_actioner.writer =
-        events->ev_actioner.errorer = NULL;
-
     events->ev_maxproc = max_proc;
-
-    if (action)
-        events->ev_actioner = *action;
+    events->ev_actioner = *action;
 
     return  true;
 }
