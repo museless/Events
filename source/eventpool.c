@@ -59,7 +59,13 @@ bool eventpool_create(Eventpool *pool)
 {
     IS_INVAILD_POOL(pool, false);
 
-    if (!fdhash_init(&pool->hash, sizeof(Event)))
+    if (!fdhash_init(&pool->readhash, sizeof(Event)))
+        return  false;
+
+    if (!fdhash_init(&pool->writehash, sizeof(Event)))
+        return  false;
+
+    if (!fdhash_init(&pool->errorhash, sizeof(Event)))
         return  false;
 
     pool->epfd = events_create(&pool->events, MAX_PROC, (void *)pool, _handle);
@@ -76,7 +82,13 @@ bool eventpool_destroy(Eventpool *pool)
 {
     IS_INVAILD_POOL(pool, false);
 
-    if (!fdhash_destroy(&pool->hash))
+    if (!fdhash_destroy(&pool->readhash))
+        return  false;
+
+    if (!fdhash_destroy(&pool->writehash))
+        return  false;
+
+    if (!fdhash_destroy(&pool->errorhash))
         return  false;
 
     if (!events_destroy(&pool->events))

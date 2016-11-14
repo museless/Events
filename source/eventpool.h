@@ -69,7 +69,10 @@ struct event {
 
 
 struct eventpool {
-    Fdhash  hash;
+    Fdhash  readhash;
+    Fdhash  writehash;
+    Fdhash  errorhash;
+
     Events  events;
 
     int32_t epfd;
@@ -82,4 +85,8 @@ struct eventpool {
 
 bool    eventpool_create(Eventpool *pool)
         __attribute__((nonnull(1)));
+
+bool    eventpool_destroy(Eventpool *pool)
+        __attribute__((nonnull(1)));
+
 
