@@ -46,34 +46,30 @@
 
 #define INF_TIMES   -1
 
+#define EVREAD      0
+#define EVWRITE     1
+#define EVERROR     2
+
 
 /*---------------------------------------------
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef bool    (*ev_handler)(int32_t epfd, int32_t fd);
+typedef bool (*ev_handler)(int32_t epfd, int32_t fd, uint8_t type);
 
 typedef struct epoll_event  Epollev;
-
 typedef struct events       Events;
-typedef struct evaction     Evaction;
 
 
 /*---------------------------------------------
  *            Part Three: Struct
 -*---------------------------------------------*/
 
-struct evaction {
-    ev_handler  reader;
-    ev_handler  writer;
-    ev_handler  errorer;
-};
-
 struct events {
     int32_t     ep_fd;
 
     uint32_t    ev_maxproc;     /* max process per time */
-    Evaction    ev_actioner;
+    ev_handler  ev_func;
 };
 
 
@@ -81,7 +77,7 @@ struct events {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-bool    events_create(Events *events, uint32_t max_proc, Evaction *action)
+bool    events_create(Events *events, uint32_t max_proc, ev_handler functor)
         __attribute__((nonnull(1, 3)));
 
 bool    events_destroy(Events *events)

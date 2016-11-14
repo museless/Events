@@ -39,10 +39,15 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 
+#include "events.h"
+#include "fdhash.h"
+
 
 /*---------------------------------------------
  *            Part One: Define
 -*---------------------------------------------*/
+
+#define MAX_PROC    0x100
 
 
 /*---------------------------------------------
@@ -50,14 +55,22 @@
 -*---------------------------------------------*/
 
 typedef struct eventpool    Eventpool;
+typedef struct event        Event;
 
 
 /*---------------------------------------------
  *            Part Three: Struct
 -*---------------------------------------------*/
 
+struct event {
+    Datanode   *next;
+    int32_t     ref;
+};
+
+
 struct eventpool {
-    void   *ptr;
+    Fdhash  hash;
+    Events  events;
 };
 
 

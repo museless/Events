@@ -35,7 +35,6 @@
 #include <errno.h>
 
 #include "mempool.h"
-#include "satomic.h"
 
 
 /*---------------------------------------------

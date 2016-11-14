@@ -32,9 +32,9 @@
  *         Part Three: Local function 
 -*---------------------------------------------*/
 
-#define EVENT_ACTION(action, triggered, epfd, fd, handler) \
-    if (triggered && (action).handler) \
-        (action).handler(epfd, fd);
+#define EVENT_ACTION(events, triggered, epfd, fd, type) \
+    if (triggered && (events)->ev_func) \
+        (events)->ev_func(epfd, fd, type);
 
 
 /*---------------------------------------------
@@ -47,14 +47,9 @@
 -*---------------------------------------------*/
 
 /*-----events_create-----*/
-bool events_create(Events *events, uint32_t max_proc, Evaction *action)
+bool events_create(Events *events, uint32_t max_proc, ev_handler functor)
 {
-    if (!events || max_proc < 1 || !action)
-        errno = EINVAL;
-        return  false;
-    }
-
-    if (!action->reader && !action->writer && !action->errorer) {
+    if (!events || max_proc < 1 || !functor) {
         errno = EINVAL;
         return  false;
     }
@@ -63,7 +58,7 @@ bool events_create(Events *events, uint32_t max_proc, Evaction *action)
         return  false;
 
     events->ev_maxproc = max_proc;
-    events->ev_actioner = *action;
+    events->ev_func = functor;
 
     return  true;
 }
@@ -85,6 +80,7 @@ bool events_destroy(Events *events)
     }
 
     events->ep_fd = 0;
+    events->ev_func = NULL;
 
     return  true;
 }
@@ -115,14 +111,14 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
         for (int idx = 0; idx < nevent; idx++) {
             Epollev *ev = evlist + idx;
 
-            EVENT_ACTION(events->ev_actioner,
-                ev->events & EPOLLIN, epfd, ev->data.fd, reader)
+            EVENT_ACTION(events,
+                ev->events & EPOLLIN, epfd, ev->data.fd, EVREAD)
 
-            EVENT_ACTION(events->ev_actioner,
-                ev->events & EPOLLOUT, epfd, ev->data.fd, writer)
+            EVENT_ACTION(events,
+                ev->events & EPOLLOUT, epfd, ev->data.fd, EVWRITE)
 
-            EVENT_ACTION(events->ev_actioner,
-                ev->events & EPOLLERR, epfd, ev->data.fd, errorer)
+            EVENT_ACTION(events,
+                ev->events & EPOLLERR, epfd, ev->data.fd, EVERROR)
         }
     }
 
