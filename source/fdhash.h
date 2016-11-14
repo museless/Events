@@ -53,8 +53,6 @@ typedef struct fdhash   Fdhash;
 typedef struct hashnode Hashnode; 
 typedef struct datanode Datanode;
 
-typedef bool (*fd_cmper)(Datanode *node, int32_t fd);
-
 
 /*---------------------------------------------
  *            Part Three: Struct
@@ -62,6 +60,7 @@ typedef bool (*fd_cmper)(Datanode *node, int32_t fd);
 
 struct datanode {
     Datanode   *next;
+    int32_t     ref;
 };
 
 struct hashnode {
@@ -73,8 +72,6 @@ struct fdhash {
     MATOS       lock;
     Hashnode    nodes[NUM_NODES];
     int32_t     nsize;
-
-    fd_cmper    cmper;
 };
 
 
@@ -82,8 +79,8 @@ struct fdhash {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-bool        fdhash_init(Fdhash *hash, fd_cmper cmper, int32_t size)
-            __attribute__((nonnull(1, 2)));
+bool        fdhash_init(Fdhash *hash, int32_t size)
+            __attribute__((nonnull(1)));
 
 bool        fdhash_destroy(Fdhash *hash)
             __attribute__((nonnull(1)));

@@ -68,12 +68,9 @@ static Datanode *_traverse(Fdhash *hash, int32_t fd, bool is_del);
 -*---------------------------------------------*/
 
 /*-----fdhash_init-----*/
-bool fdhash_init(Fdhash *hash, fd_cmper cmper, int32_t size)
+bool fdhash_init(Fdhash *hash, int32_t size)
 {
-    if (!hash || !cmper) {
-        errno = EINVAL;
-        return  false
-    }
+    CHECK_HASH_VAILD(hash, false);
 
     if (!mmdp_create(&hash->mem, DEF_CHUNKSIZE))
         return  false;
@@ -119,15 +116,16 @@ Datanode *fdhash_insert(Fdhash *hash, int32_t fd)
     LOCK_HASH(hash);
 
     int32_t     offset = _hash(fd);
-    Datanode   *node = mmdp_malloc(&hash->mem); 
+    Datanode   *node = mmdp_malloc(&hash->mem, hash->nsize);
 
     if (!node) {
         UNLOCK_HASH(hash);
         return  false;
     }
 
+    node->ref = fd;
     node->next = hash->nodes[offset].head;
-    hash->nodes[offset].next = node;
+    hash->nodes[offset].head = node;
     UNLOCK_HASH(hash);
 
     return  node;
@@ -183,7 +181,7 @@ Datanode *_traverse(Fdhash *hash, int32_t fd, bool is_del)
     Datanode   *last = NULL;
 
     while (node) {
-        if (hash->cmper(node, fd)) {
+        if (node->ref == fd) {
             if (is_del) {
                 if (last) {
                     last->next = node->next;
