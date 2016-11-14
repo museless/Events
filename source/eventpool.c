@@ -43,7 +43,7 @@
  *         Part Three: Local function 
 -*---------------------------------------------*/
 
-static bool _handle(int32_t epfd, int32_t fd, uint8_t type);
+static bool _handle(void *object, int32_t fd, uint8_t type);
 
 
 /*---------------------------------------------
@@ -62,7 +62,9 @@ bool eventpool_create(Eventpool *pool)
     if (!fdhash_init(&pool->hash, sizeof(Event)))
         return  false;
 
-    if (!events_create(&pool->events, MAX_PROC, _handle))
+    pool->epfd = events_create(&pool->events, MAX_PROC, (void *)pool, _handle);
+
+    if (pool->epfd == -1)
         return  false;
 
     return  true;
@@ -92,8 +94,15 @@ bool eventpool_destroy(Eventpool *pool)
 -*---------------------------------------------*/
 
 /*-----_handle-----*/
-bool _handle(int32_t epfd, int32_t fd, uint8_t type)
+bool _handle(void *object, int32_t fd, uint8_t type)
 {
+    switch (type) {
+      case EVREAD:
+      case EVWRITE:
+      case EVERROR:
+          break;
+    }
+
     return  true;
 }
 

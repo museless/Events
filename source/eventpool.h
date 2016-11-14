@@ -71,6 +71,8 @@ struct event {
 struct eventpool {
     Fdhash  hash;
     Events  events;
+
+    int32_t epfd;
 };
 
 

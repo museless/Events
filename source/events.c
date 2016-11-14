@@ -34,7 +34,7 @@
 
 #define EVENT_ACTION(events, triggered, epfd, fd, type) \
     if (triggered && (events)->ev_func) \
-        (events)->ev_func(epfd, fd, type);
+        (events)->ev_func(events->ev_obj, fd, type);
 
 
 /*---------------------------------------------
@@ -47,20 +47,22 @@
 -*---------------------------------------------*/
 
 /*-----events_create-----*/
-bool events_create(Events *events, uint32_t max_proc, ev_handler functor)
+int32_t events_create(Events *events, uint32_t max_proc,
+            void *evobj, ev_handler functor)
 {
     if (!events || max_proc < 1 || !functor) {
         errno = EINVAL;
-        return  false;
+        return  -1;
     }
 
     if ((events->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
-        return  false;
+        return  -1;
 
     events->ev_maxproc = max_proc;
     events->ev_func = functor;
+    events->ev_obj = evobj;
 
-    return  true;
+    return  events->ep_fd;
 }
 
 
@@ -81,6 +83,7 @@ bool events_destroy(Events *events)
 
     events->ep_fd = 0;
     events->ev_func = NULL;
+    events->ev_obj = NULL;
 
     return  true;
 }
