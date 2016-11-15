@@ -1,10 +1,10 @@
 /*---------------------------------------------
- *     modification time: 2016.11.13 23:10
+ *     modification time: 2016.11.15 09:15
  *     mender: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *     file: events.h 
+ *     file: eventsaver.h 
  *     creation time: 2016.11.13 23:10
  *     author: Muse 
 -*---------------------------------------------*/
@@ -33,13 +33,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <errno.h>
 
-#include <sys/types.h>
-#include <sys/epoll.h>
-
-#include "events.h"
 #include "fdhash.h"
 
 
@@ -47,14 +42,12 @@
  *            Part One: Define
 -*---------------------------------------------*/
 
-#define MAX_PROC    0x100
-
 
 /*---------------------------------------------
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef struct eventpool    Eventpool;
+typedef struct eventsaver   Eventsaver;
 typedef struct event        Event;
 
 
@@ -68,14 +61,10 @@ struct event {
 };
 
 
-struct eventpool {
+struct eventsaver {
     Fdhash  readhash;
     Fdhash  writehash;
     Fdhash  errorhash;
-
-    Events  events;
-
-    int32_t epfd;
 };
 
 
@@ -83,10 +72,10 @@ struct eventpool {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-bool    eventpool_create(Eventpool *pool)
+bool    eventsaver_create(Eventsaver *saver)
         __attribute__((nonnull(1)));
 
-bool    eventpool_destroy(Eventpool *pool)
+bool    eventsaver_destroy(Eventsaver *saver)
         __attribute__((nonnull(1)));
 
 
