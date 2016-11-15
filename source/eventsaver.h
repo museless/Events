@@ -42,6 +42,10 @@
  *            Part One: Define
 -*---------------------------------------------*/
 
+#define READ    0
+#define WRITE   1
+#define ERROR   2
+
 
 /*---------------------------------------------
  *            Part Two: Typedef
@@ -49,6 +53,8 @@
 
 typedef struct eventsaver   Eventsaver;
 typedef struct event        Event;
+
+typedef void (*ev_handle)(int32_t fd);
 
 
 /*---------------------------------------------
@@ -58,6 +64,7 @@ typedef struct event        Event;
 struct event {
     Datanode   *next;
     int32_t     ref;
+    ev_handle   handle;
 };
 
 
@@ -76,6 +83,16 @@ bool    eventsaver_create(Eventsaver *saver)
         __attribute__((nonnull(1)));
 
 bool    eventsaver_destroy(Eventsaver *saver)
+        __attribute__((nonnull(1)));
+
+bool    eventsaver_add(Eventsaver *saver, uint8_t type, 
+            int32_t fd, ev_handle functor)
+        __attribute__((nonnull(1)));
+
+bool    eventsaver_delete(Eventsaver *saver, uint8_t type, int32_t fd)
+        __attribute__((nonnull(1)));
+
+bool    eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
         __attribute__((nonnull(1)));
 
 

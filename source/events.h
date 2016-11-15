@@ -55,7 +55,7 @@
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef bool (*ev_handler)(void *object, int32_t fd, uint8_t type);
+typedef bool (*ev_functor)(void *object, int32_t fd, uint8_t type);
 
 typedef struct epoll_event  Epollev;
 typedef struct events       Events;
@@ -69,7 +69,7 @@ struct events {
     int32_t     ep_fd;
 
     uint32_t    ev_maxproc; /* max process per time */
-    ev_handler  ev_func;
+    ev_functor  ev_func;
 
     void       *ev_obj;
 };
@@ -80,7 +80,7 @@ struct events {
 -*---------------------------------------------*/
 
 int32_t events_create(Events *events, uint32_t max_proc, 
-            void *evobj, ev_handler functor)
+            void *evobj, ev_functor functor)
         __attribute__((nonnull(1, 3, 4)));
 
 bool    events_destroy(Events *events)

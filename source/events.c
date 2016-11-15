@@ -48,7 +48,7 @@
 
 /*-----events_create-----*/
 int32_t events_create(Events *events, uint32_t max_proc,
-            void *evobj, ev_handler functor)
+            void *evobj, ev_functor functor)
 {
     if (!events || max_proc < 1 || !functor) {
         errno = EINVAL;
