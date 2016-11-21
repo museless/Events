@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.14 21:20
+ *     modification time: 2016.11.22 01:10
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -39,14 +39,18 @@
         return  (ret); \
     }
 
-#define HAS_SELECT(saver, type) \
-    (type == READ) ? &saver->readhash : \
-    ((type == WRITE) ? &saver->writehash : &saver->errorhash)
+#define IS_INVAILD_TYPE(type, ret) \
+    if (type < EVMIN || type > EVMAX) { \
+        errno = EINVAL; \
+        return  (ret); \
+    }
 
 
 /*---------------------------------------------
  *         Part Three: Local function 
 -*---------------------------------------------*/
+
+static Fdhash  *_hash_select(Eventsaver *saver, uint8_t type);
 
 
 /*---------------------------------------------
@@ -103,18 +107,21 @@ bool eventsaver_destroy(Eventsaver *saver)
 -*---------------------------------------------*/
 
 /*-----eventsaver_add-----*/
-bool eventsaver_add(Eventsaver *saver, uint8_t type, 
-        int32_t fd, ev_handle functor)
+bool eventsaver_add(Eventsaver *saver,
+        uint8_t type, int32_t fd, ev_handle functor, void *args)
 {
     if (!saver || !functor) {
         errno = EINVAL;
         return  false;
     }
 
-    Fdhash     *hash = HAS_SELECT(saver, type);
+    IS_INVAILD_TYPE(type, false);
+
+    Fdhash     *hash = _hash_select(saver, type);
     Datanode   *node = fdhash_insert(hash, fd);
 
     ((Event *)node)->handle = functor;
+    ((Event *)node)->args = args;
 
     return  true;
 }
@@ -124,17 +131,43 @@ bool eventsaver_add(Eventsaver *saver, uint8_t type,
 bool eventsaver_delete(Eventsaver *saver, uint8_t type, int32_t fd)
 {
     IS_INVAILD_SAVER(saver, false);
+    IS_INVAILD_TYPE(type, false);
 
-    return  fdhash_delete(HAS_SELECT(saver, type), fd);
+    return  fdhash_delete(_hash_select(saver, type), fd);
 }
 
 
 /*-----eventsaver_search-----*/
-bool eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
+Event *eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
 {
     IS_INVAILD_SAVER(saver, false);
+    IS_INVAILD_TYPE(type, false);
 
-    return  fdhash_search(HAS_SELECT(saver, type), fd) ? true : false;
+    return  (Event *)fdhash_search(_hash_select(saver, type), fd);
 }
 
+
+/*---------------------------------------------
+ *             Part Six: Helper 
+ *
+ *             1. _hash_select 
+ *
+-*---------------------------------------------*/
+
+/*-----_hash_select-----*/
+Fdhash *_hash_select(Eventsaver *saver, uint8_t type)
+{
+    switch (type) {
+        case EVREAD:
+            return  &saver->readhash;
+
+        case EVWRITE:
+            return  &saver->writehash;
+
+        case EVERROR:
+            return  &saver->errorhash;
+    }
+
+    return  NULL;
+}
 

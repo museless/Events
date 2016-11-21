@@ -46,9 +46,15 @@
 
 #define INF_TIMES   -1
 
-#define EVREAD      0
-#define EVWRITE     1
-#define EVERROR     2
+enum EVTYPE {
+    EVMIN = 0,
+
+    EVREAD = EVMIN,
+    EVWRITE,
+    EVERROR,
+
+    EVMAX = EVERROR,
+};
 
 
 /*---------------------------------------------

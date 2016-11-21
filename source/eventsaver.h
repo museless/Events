@@ -36,15 +36,12 @@
 #include <errno.h>
 
 #include "fdhash.h"
+#include "events.h"
 
 
 /*---------------------------------------------
  *            Part One: Define
 -*---------------------------------------------*/
-
-#define READ    0
-#define WRITE   1
-#define ERROR   2
 
 
 /*---------------------------------------------
@@ -54,7 +51,7 @@
 typedef struct eventsaver   Eventsaver;
 typedef struct event        Event;
 
-typedef void (*ev_handle)(int32_t fd);
+typedef void (*ev_handle)(int32_t fd, void *args);
 
 
 /*---------------------------------------------
@@ -65,6 +62,7 @@ struct event {
     Datanode   *next;
     int32_t     ref;
     ev_handle   handle;
+    void       *args;
 };
 
 
@@ -85,14 +83,14 @@ bool    eventsaver_create(Eventsaver *saver)
 bool    eventsaver_destroy(Eventsaver *saver)
         __attribute__((nonnull(1)));
 
-bool    eventsaver_add(Eventsaver *saver, uint8_t type, 
-            int32_t fd, ev_handle functor)
+bool    eventsaver_add(Eventsaver *saver,
+            uint8_t type, int32_t fd, ev_handle functor, void *args)
         __attribute__((nonnull(1)));
 
 bool    eventsaver_delete(Eventsaver *saver, uint8_t type, int32_t fd)
         __attribute__((nonnull(1)));
 
-bool    eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
+Event  *eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
         __attribute__((nonnull(1)));
 
 
