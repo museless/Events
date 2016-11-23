@@ -27,21 +27,8 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-
 #include "fdhash.h"
-#include "events.h"
-
-
-/*---------------------------------------------
- *            Part One: Define
--*---------------------------------------------*/
+#include "eventbase.h"
 
 
 /*---------------------------------------------

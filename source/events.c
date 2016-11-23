@@ -32,9 +32,13 @@
  *         Part Three: Local function 
 -*---------------------------------------------*/
 
-#define EVENT_ACTION(events, triggered, epfd, fd, type) \
-    if (triggered && (events)->ev_func) \
-        (events)->ev_func(events->ev_obj, fd, type);
+#define EVENT_ACTION(triggered, fd, type) \
+    if (triggered) { \
+        Event  *curr = eventsaver_search(saver, type, fd); \
+\
+        if (curr) \
+            curr->handle(fd, curr->args); \
+    }
 
 
 /*---------------------------------------------
@@ -47,22 +51,22 @@
 -*---------------------------------------------*/
 
 /*-----events_create-----*/
-int32_t events_create(Events *events, uint32_t max_proc,
-            void *evobj, ev_functor functor)
+bool events_create(Events *events, uint32_t max_proc)
 {
-    if (!events || max_proc < 1 || !functor) {
+    if (!events || max_proc < 1) {
         errno = EINVAL;
-        return  -1;
+        return  false;
     }
 
     if ((events->ep_fd = epoll_create1(EPOLL_CLOEXEC)) == -1)
-        return  -1;
+        return  false;
+
+    if (!eventsaver_create(&events->ev_saver))
+        return  false;
 
     events->ev_maxproc = max_proc;
-    events->ev_func = functor;
-    events->ev_obj = evobj;
 
-    return  events->ep_fd;
+    return  true; 
 }
 
 
@@ -82,8 +86,9 @@ bool events_destroy(Events *events)
     }
 
     events->ep_fd = 0;
-    events->ev_func = NULL;
-    events->ev_obj = NULL;
+
+    if (!eventsaver_destroy(&events->ev_saver))
+        return  false;
 
     return  true;
 }
@@ -102,11 +107,11 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
     if (!evlist)
         return  false;
 
-    int32_t  nevent, cnt = 0;
-    int32_t  epfd = events->ep_fd, maxproc = events->ev_maxproc;
+    int32_t     nevent, cnt = 0;
+    Eventsaver *saver = &events->ev_saver;
 
     while (times == INF_TIMES || cnt++ < times) {
-        nevent = epoll_wait(epfd, evlist, maxproc, timeout);
+        nevent = epoll_wait(events->ep_fd, evlist, events->ev_maxproc, timeout);
 
         if (nevent == -1)
             return  false;
@@ -114,14 +119,9 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
         for (int idx = 0; idx < nevent; idx++) {
             Epollev *ev = evlist + idx;
 
-            EVENT_ACTION(events,
-                ev->events & EPOLLIN, epfd, ev->data.fd, EVREAD)
-
-            EVENT_ACTION(events,
-                ev->events & EPOLLOUT, epfd, ev->data.fd, EVWRITE)
-
-            EVENT_ACTION(events,
-                ev->events & EPOLLERR, epfd, ev->data.fd, EVERROR)
+            EVENT_ACTION(ev->events & EPOLLIN, ev->data.fd, EVREAD)
+            EVENT_ACTION(ev->events & EPOLLOUT, ev->data.fd, EVWRITE)
+            EVENT_ACTION(ev->events & EPOLLERR, ev->data.fd, EVERROR)
         }
     }
 

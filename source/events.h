@@ -27,17 +27,8 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <errno.h>
-
-#include <sys/types.h>
-#include <sys/epoll.h>
+#include "eventbase.h"
+#include "eventsaver.h"
 
 
 /*---------------------------------------------
@@ -46,22 +37,12 @@
 
 #define INF_TIMES   -1
 
-enum EVTYPE {
-    EVMIN = 0,
-
-    EVREAD = EVMIN,
-    EVWRITE,
-    EVERROR,
-
-    EVMAX = EVERROR,
-};
-
 
 /*---------------------------------------------
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef bool (*ev_functor)(void *object, int32_t fd, uint8_t type);
+typedef bool (*ev_functor)(int32_t fd, uint8_t type, void *args);
 
 typedef struct epoll_event  Epollev;
 typedef struct events       Events;
@@ -75,9 +56,7 @@ struct events {
     int32_t     ep_fd;
 
     uint32_t    ev_maxproc; /* max process per time */
-    ev_functor  ev_func;
-
-    void       *ev_obj;
+    Eventsaver  ev_saver;
 };
 
 
@@ -85,9 +64,8 @@ struct events {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-int32_t events_create(Events *events, uint32_t max_proc, 
-            void *evobj, ev_functor functor)
-        __attribute__((nonnull(1, 3, 4)));
+bool    events_create(Events *events, uint32_t max_proc)
+        __attribute__((nonnull(1)));
 
 bool    events_destroy(Events *events)
         __attribute__((nonnull(1)));
