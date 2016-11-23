@@ -61,8 +61,8 @@ static Evdata   DefaultEvdata = {NULL, NULL};
  *         Part Three: Local function 
 -*---------------------------------------------*/
 
-static bool _events_ctl(Events *events, int32_t fd,
-            int32_t op, int32_t type, Evdata *data);
+static bool _events_ctl(Eventsaver *saver,
+            int32_t fd, int32_t op, int32_t type, Evdata *data);
 
 
 /*---------------------------------------------
@@ -169,10 +169,7 @@ bool events_ctl(Events *events, int32_t fd,
     if (epoll_ctl(events->ep_fd, op, fd, &ev) == -1)
         return  false;
 
-    if (!_events_ctl(events, fd, op, type, data))
-        return  false;
-
-    return  true;
+    return  _events_ctl(&events->ev_saver, fd, op, type, data);
 }
 
 
@@ -184,16 +181,30 @@ bool events_ctl(Events *events, int32_t fd,
 -*---------------------------------------------*/
 
 /*-----_events_ctl-----*/
-bool _events_ctl(Events *events, 
+bool _events_ctl(Eventsaver *saver, 
         int32_t fd, int32_t op, int32_t type, Evdata *data)
 {
     if (!data)
         data = &DefaultEvdata;
 
-    switch (type) {
+    switch (op) {
         case EPOLL_CTL_ADD:
+            return  eventsaver_add(saver, type, fd, data);
+                    
         case EPOLL_CTL_MOD:
+            {
+                Event  *ev = eventsaver_search(saver, type, fd);
+
+                if (ev) {
+                    ev->data = *data;
+                    return  true;
+                }
+
+                return  false;
+            }
+
         case EPOLL_CTL_DEL:
+            return  eventsaver_delete(saver, type, fd);
 
         default:
             errno = EINVAL;

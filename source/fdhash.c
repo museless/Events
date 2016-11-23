@@ -187,7 +187,7 @@ Datanode *_traverse(Fdhash *hash, int32_t fd, bool is_del)
                     last->next = node->next;
 
                 } else {
-                    hash->nodes[offset].head = last->next;
+                    hash->nodes[offset].head = NULL;
                 }
 
                 mmdp_free(&hash->mem, node);

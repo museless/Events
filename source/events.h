@@ -71,3 +71,8 @@ bool    events_destroy(Events *events)
 bool    events_run(Events *events, int32_t times, int32_t timeout)
         __attribute__((nonnull(1)));
 
+bool    events_ctl(Events *events, int32_t fd, 
+            int32_t op, int32_t type, uint32_t event, Evdata *data)
+        __attribute__((nonnull(1)));
+
+
