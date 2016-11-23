@@ -38,8 +38,6 @@
 typedef struct eventsaver   Eventsaver;
 typedef struct event        Event;
 
-typedef void (*ev_handle)(int32_t fd, void *args);
-
 
 /*---------------------------------------------
  *            Part Three: Struct
@@ -48,8 +46,8 @@ typedef void (*ev_handle)(int32_t fd, void *args);
 struct event {
     Datanode   *next;
     int32_t     ref;
-    ev_handle   handle;
-    void       *args;
+
+    Evdata      data;
 };
 
 
@@ -71,8 +69,8 @@ bool    eventsaver_destroy(Eventsaver *saver)
         __attribute__((nonnull(1)));
 
 bool    eventsaver_add(Eventsaver *saver,
-            uint8_t type, int32_t fd, ev_handle functor, void *args)
-        __attribute__((nonnull(1)));
+            uint8_t type, int32_t fd, Evdata *data) 
+        __attribute__((nonnull(1, 4)));
 
 bool    eventsaver_delete(Eventsaver *saver, uint8_t type, int32_t fd)
         __attribute__((nonnull(1)));

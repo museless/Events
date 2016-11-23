@@ -42,8 +42,6 @@
  *            Part Two: Typedef
 -*---------------------------------------------*/
 
-typedef bool (*ev_functor)(int32_t fd, uint8_t type, void *args);
-
 typedef struct epoll_event  Epollev;
 typedef struct events       Events;
 

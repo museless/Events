@@ -108,9 +108,9 @@ bool eventsaver_destroy(Eventsaver *saver)
 
 /*-----eventsaver_add-----*/
 bool eventsaver_add(Eventsaver *saver,
-        uint8_t type, int32_t fd, ev_handle functor, void *args)
+        uint8_t type, int32_t fd, Evdata *data) 
 {
-    if (!saver || !functor) {
+    if (!saver || !data) {
         errno = EINVAL;
         return  false;
     }
@@ -120,8 +120,7 @@ bool eventsaver_add(Eventsaver *saver,
     Fdhash     *hash = _hash_select(saver, type);
     Datanode   *node = fdhash_insert(hash, fd);
 
-    ((Event *)node)->handle = functor;
-    ((Event *)node)->args = args;
+    ((Event *)node)->data = *data;
 
     return  true;
 }

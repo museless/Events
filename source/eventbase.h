@@ -40,7 +40,7 @@
 
 
 /*---------------------------------------------
- *            Part Two: Enum 
+ *               Part Two: Enum 
 -*---------------------------------------------*/
 
 enum EVTYPE {
@@ -51,6 +51,25 @@ enum EVTYPE {
     EVERROR,
 
     EVMAX = EVERROR,
+};
+
+
+/*---------------------------------------------
+ *            Part Three: Typedef
+-*---------------------------------------------*/
+
+typedef void (*ev_handle)(int32_t fd, void *args);
+
+typedef struct evdata   Evdata;
+
+
+/*---------------------------------------------
+ *            Part Four: Struct 
+-*---------------------------------------------*/
+
+struct evdata {
+    ev_handle   handle;
+    void       *args;
 };
 
 
