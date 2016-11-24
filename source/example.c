@@ -9,39 +9,19 @@
  *     author: Muse
 -*---------------------------------------------*/
 
-#include "events.h"
-#include <signal.h>
-#include <sys/signalfd.h>
-#include <sys/timerfd.h>
+#include "signalfd.h"
+#include "timerfd.h"
 
 
 void timer_get(int32_t fd, void *args)
 {
-    struct itimerspec   value;
+    uint64_t    value;
+    Events     *events = (Events *)args;
 
-    timerfd_gettime(fd, &value);
+    read(fd, &value, sizeof(uint64_t));
+    printf("%lu\n", value);
 
-    printf("%ld\n", value.it_value.tv_sec);
-}
-
-
-int32_t create_timer(void)
-{
-    int32_t tfd = timerfd_create(CLOCK_REALTIME, 0);
-
-    if (tfd == -1)
-        return  -1;
-
-    struct itimerspec   value;
-
-    value.it_interval.tv_sec = 0;
-    value.it_interval.tv_nsec = 0;
-    value.it_value.tv_sec = 2;
-    value.it_value.tv_nsec = 0;
-
-    timerfd_settime(tfd, 0, &value, NULL);
-
-    return  tfd;
+    events_stop_run(events);
 }
 
 
@@ -60,35 +40,19 @@ void signal_get(int32_t fd, void *args)
             EPOLL_CTL_DEL, EVREAD, 0, NULL))
         perror("events_ctl");
 
-    int32_t tfd = create_timer();
+    Itimerspec  value;
+    Evdata      data;
 
-    if (tfd == -1) {
-        perror("create_timer");
-        return;
-    }
-
-    Evdata  data;
+    value.it_interval.tv_sec = 0;
+    value.it_interval.tv_nsec = 0;
+    value.it_value.tv_sec = 2;
+    value.it_value.tv_nsec = 0;
 
     data.handle = timer_get;
     data.args = events;
 
-    if (!events_ctl(events, tfd,
-            EPOLL_CTL_ADD, EVREAD, EPOLLIN | EPOLLET, &data))
-        perror("events_ctl");
-}
-
-
-int32_t create_signalfd(void)
-{
-    sigset_t    set;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGINT);
-
-    if (sigprocmask(SIG_BLOCK, &set, NULL) == -1)
-        return  -1;
-
-    return  signalfd(-1, &set, SFD_NONBLOCK);
+    if (_timerfd_add(events, CLOCK_REALTIME, &value, &data) == -1)
+        perror("_timerfd_add");
 }
 
 
@@ -101,21 +65,13 @@ int main(void)
         return  -1;
     }
 
-    int32_t sigfd = create_signalfd();
-
-    if (sigfd == -1) {
-        perror("create_signalfd");
-        return  -1;
-    }
-
     Evdata  data;
 
     data.handle = signal_get;
     data.args = &events;
 
-    if (!events_ctl(&events, sigfd,
-            EPOLL_CTL_ADD, EVREAD, EPOLLIN, &data)) {
-        perror("events_ctl");
+    if (signalfd_add(&events, SIGINT, &data) == -1) {
+        perror("signalfd_add");
         return  -1;
     }
 

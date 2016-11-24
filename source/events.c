@@ -41,12 +41,17 @@
     }
 
 
-#define EVENT_ACTION(triggered, type) \
+#define EVENT_ACTION(events, triggered, type) \
     if (triggered) { \
         Event  *curr = eventsaver_search(saver, type, fd); \
 \
         if (curr) \
             curr->data.handle(fd, curr->data.args); \
+\
+        if (events->ev_isstop) { \
+            times = 0; \
+            break; \
+        } \
     }
 
 
@@ -89,6 +94,7 @@ bool events_create(Events *events, uint32_t max_proc)
         return  false;
 
     events->ev_maxproc = max_proc;
+    events->ev_isstop = false;
 
     return  true; 
 }
@@ -138,11 +144,13 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
             Epollev *ev = evlist + idx;
             int32_t  fd = ev->data.fd;
 
-            EVENT_ACTION(ev->events & EPOLLIN, EVREAD)
-            EVENT_ACTION(ev->events & EPOLLOUT, EVWRITE)
-            EVENT_ACTION(ev->events & EPOLLERR, EVERROR)
+            EVENT_ACTION(events, ev->events & EPOLLIN, EVREAD)
+            EVENT_ACTION(events, ev->events & EPOLLOUT, EVWRITE)
+            EVENT_ACTION(events, ev->events & EPOLLERR, EVERROR)
         }
     }
+
+    events->ev_isstop = false;
 
     return  true;
 }
@@ -152,6 +160,7 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
  *         Part Five: Events operate
  *
  *             1. events_ctl
+ *             2. events_stop_run
  *
 -*---------------------------------------------*/
 
@@ -170,6 +179,13 @@ bool events_ctl(Events *events, int32_t fd,
         return  false;
 
     return  _events_ctl(&events->ev_saver, fd, op, type, data);
+}
+
+
+/*-----events_stop_run-----*/
+void events_stop_run(Events *events)
+{
+    events->ev_isstop = true;
 }
 
 

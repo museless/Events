@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.06 23:00
+ *     modification time: 2016.11.25 00:00
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -37,6 +37,11 @@
 
 #define INF_TIMES   -1
 
+#define _eventfd_oper(events, fd, data) \
+    events_ctl(events, fd, \
+        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, \
+        EVREAD, DEFEVENT, data);
+
 
 /*---------------------------------------------
  *            Part Two: Typedef
@@ -55,6 +60,8 @@ struct events {
 
     uint32_t    ev_maxproc; /* max process per time */
     Eventsaver  ev_saver;
+
+    bool        ev_isstop;  /* is stop running loop */
 };
 
 
@@ -75,4 +82,6 @@ bool    events_ctl(Events *events, int32_t fd,
             int32_t op, int32_t type, uint32_t event, Evdata *data)
         __attribute__((nonnull(1)));
 
+void    events_stop_run(Events *events)
+        __attribute__((nonnull(1)));
 

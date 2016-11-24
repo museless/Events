@@ -1,11 +1,11 @@
 /*---------------------------------------------
- *     modification time: 2016.11.13 23:10
+ *     modification time: 2016.11.24 23:35
  *     mender: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *     file: fdhash.h 
- *     creation time: 2016.11.13 23:10
+ *     file: timerfd.h 
+ *     creation time: 2016.11.24 23:35
  *     author: Muse 
 -*---------------------------------------------*/
 
@@ -28,19 +28,22 @@
 #pragma once
 
 #include "events.h"
-#include <signal.h>
-#include <sys/signalfd.h>
+#include <sys/timerfd.h>
 
 
 /*---------------------------------------------
- *            Part One: Define
+ *            Part Two: Typedef
 -*---------------------------------------------*/
+
+typedef struct timespec     Timespec;
+typedef struct itimerspec   Itimerspec;
 
 
 /*---------------------------------------------
  *            Part Four: Function
 -*---------------------------------------------*/
 
-int32_t signalfd_add(Events *event, int32_t signum, Evdata *data)
-        __attribute__((nonnull(1, 3)));
+int32_t _timerfd_add(Events *events,
+        int32_t clockid, Itimerspec *value, Evdata *data)
+        __attribute__((nonnull(1, 4)));
 

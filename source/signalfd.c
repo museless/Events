@@ -10,7 +10,7 @@
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *       Source file content Seven part
+ *       Source file content Five part
  *
  *       Part Zero:  Include
  *       Part One:   Define 
@@ -29,20 +29,9 @@
 
 
 /*---------------------------------------------
- *             Part One: Define
--*---------------------------------------------*/
-
-
-/*---------------------------------------------
- *         Part Three: Local function
--*---------------------------------------------*/
-
-
-/*---------------------------------------------
  *         Part Four: Signal fd control
  *
  *             1. signalfd_add
- *             2. signalfd_del
  *
 -*---------------------------------------------*/
 
@@ -59,21 +48,17 @@ int32_t signalfd_add(Events *events, int32_t signum, Evdata *data)
         return  -1;
 
     if (!events_ctl(events, sigfd,
-            EPOLL_CTL_ADD, EVREAD, EPOLLIN | EPOLLET, data))
+            EPOLL_CTL_ADD, EVREAD, DEFEVENT, data)) {
+        close(sigfd);
         return  -1;
+    }
 
-    if (sigprocmask(SIG_BLOCK, &set, NULL) == -1)
+    if (sigprocmask(SIG_BLOCK, &set, NULL) == -1) {
+        close(sigfd);
         return  -1;
+    }
 
     return  sigfd;
 }
 
-
-/*-----signalfd_oper-----*/
-bool signalfd_oper(Events *events, int32_t sigfd, Evdata *data)
-{
-    return  events_ctl(events, sigfd,
-                data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, 
-                EVREAD, EPOLLIN | EPOLLET, data);
-}
 

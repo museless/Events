@@ -8,7 +8,7 @@ EXMDP	= test
 # obj #
 OMDP	= source/events.c source/example.c \
 		  source/eventsaver.c source/fdhash.c source/mempool.c \
-		  source/signalfd.c
+		  source/signalfd.c source/timerfd.c
 
 # phony #
 .phony:	build
