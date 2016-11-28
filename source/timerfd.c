@@ -38,12 +38,12 @@ static Itimerspec   DefaultTspec = {{0, 0}, {0, 0}};
 /*---------------------------------------------
  *         Part Four: Timerfd control
  *
- *             1. _timerfd_add 
+ *             1. timerfd_add 
  *
 -*---------------------------------------------*/
 
-/*-----_timerfd_add-----*/
-int32_t _timerfd_add(Events *events,
+/*-----timerfd_add-----*/
+int32_t timerfd_add(Events *events,
         int32_t clockid, Itimerspec *value, Evdata *data)
 {
     if (!value)

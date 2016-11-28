@@ -1,11 +1,11 @@
 /*---------------------------------------------
- *     modification time: 2016.11.24 23:35
+ *     modification time: 2016.11.28 15:00
  *     mender: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *     file: timerfd.h 
- *     creation time: 2016.11.24 23:35
+ *     file: Events.h 
+ *     creation time: 2016.11.28 15:00
  *     author: Muse 
 -*---------------------------------------------*/
 
@@ -28,22 +28,14 @@
 #pragma once
 
 #include "events.h"
-#include <sys/timerfd.h>
+#include "timerfd.h"
+#include "signalfd.h"
 
 
 /*---------------------------------------------
- *            Part Two: Typedef
+ *             Part One: Define
 -*---------------------------------------------*/
 
-typedef struct timespec     Timespec;
-typedef struct itimerspec   Itimerspec;
-
-
-/*---------------------------------------------
- *            Part Four: Function
--*---------------------------------------------*/
-
-int32_t timerfd_add(Events *events,
-        int32_t clockid, Itimerspec *value, Evdata *data)
-        __attribute__((nonnull(1, 4)));
-
+#define eventfd_ctl(events, fd, data) \
+    events_ctl(events, fd, \
+        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, EVREAD, DEFEVENT, data);

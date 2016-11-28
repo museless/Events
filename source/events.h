@@ -37,11 +37,6 @@
 
 #define INF_TIMES   -1
 
-#define _eventfd_oper(events, fd, data) \
-    events_ctl(events, fd, \
-        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, \
-        EVREAD, DEFEVENT, data);
-
 
 /*---------------------------------------------
  *            Part Two: Typedef

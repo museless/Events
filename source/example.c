@@ -9,8 +9,7 @@
  *     author: Muse
 -*---------------------------------------------*/
 
-#include "signalfd.h"
-#include "timerfd.h"
+#include "Events.h"
 
 
 void timer_get(int32_t fd, void *args)
@@ -51,8 +50,8 @@ void signal_get(int32_t fd, void *args)
     data.handle = timer_get;
     data.args = events;
 
-    if (_timerfd_add(events, CLOCK_REALTIME, &value, &data) == -1)
-        perror("_timerfd_add");
+    if (timerfd_add(events, CLOCK_REALTIME, &value, &data) == -1)
+        perror("timerfd_add");
 }
 
 
