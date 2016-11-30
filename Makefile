@@ -23,11 +23,11 @@ EXOBJ	= source/events.o \
 
 # exec
 object	: $(EXLIB)
-build	: object $(EXEV)
+build	: $(EXEV)
 clean	:
 	rm -f test $(EXOBJ) $(EXLIB)
 
-$(EXEV) : $(EXOBJ)
+$(EXEV) : $(OEXAM)
 	$(CC) $(CFLAGS) $(CINC) $(CILIB) $(OEXAM) -o $(EXEV) 
 
 $(EXLIB): $(EXOBJ)

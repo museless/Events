@@ -37,6 +37,3 @@
  *             Part One: Define
 -*---------------------------------------------*/
 
-#define eventfd_ctl(events, fd, data) \
-    events_ctl(events, fd, \
-        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, EVREAD, DEFEVENT, data);

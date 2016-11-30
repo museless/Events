@@ -161,6 +161,7 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
  *
  *             1. events_ctl
  *             2. events_stop_run
+ *             3. eventfd_ctl
  *
 -*---------------------------------------------*/
 
@@ -186,6 +187,14 @@ bool events_ctl(Events *events, int32_t fd,
 void events_stop_run(Events *events)
 {
     events->ev_isstop = true;
+}
+
+
+/*-----eventfd_ctl-----*/
+bool eventfd_ctl(Events *events, int32_t fd, Evdata *data)
+{
+    return  events_ctl(events, fd,\
+        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, EVREAD, DEFEVENT, data);
 }
 
 

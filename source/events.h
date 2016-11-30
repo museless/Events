@@ -80,3 +80,6 @@ bool    events_ctl(Events *events, int32_t fd,
 void    events_stop_run(Events *events)
         __attribute__((nonnull(1)));
 
+bool    eventfd_ctl(Events *events, int32_t fd, Evdata *data)
+        __attribute__((nonnull(1)));
+

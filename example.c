@@ -10,49 +10,21 @@
 -*---------------------------------------------*/
 
 #include "Events.h"
+#include <arpa/inet.h>
 
 
-void timer_get(int32_t fd, void *args)
-{
-    uint64_t    value;
-    Events     *events = (Events *)args;
-
-    read(fd, &value, sizeof(uint64_t));
-    printf("%lu\n", value);
-
-    events_stop_run(events);
-}
+/* static */
+static void write_header(int32_t fd, void *args); 
+static void read_html(int32_t fd, void *args);
 
 
-void signal_get(int32_t fd, void *args)
-{
-    struct signalfd_siginfo sinfo;
-    Events *events = (Events *)args;
-
-    read(fd, &sinfo, sizeof(struct signalfd_siginfo));
-
-    printf("Fd: %d\n", sinfo.ssi_signo);
-    printf("Code: %d\n", sinfo.ssi_code);
-    printf("Pid: %d\n", sinfo.ssi_pid);
-
-    if (!events_ctl(events, fd,
-            EPOLL_CTL_DEL, EVREAD, 0, NULL))
-        perror("events_ctl");
-
-    Itimerspec  value;
-    Evdata      data;
-
-    value.it_interval.tv_sec = 0;
-    value.it_interval.tv_nsec = 0;
-    value.it_value.tv_sec = 2;
-    value.it_value.tv_nsec = 0;
-
-    data.handle = timer_get;
-    data.args = events;
-
-    if (timerfd_add(events, CLOCK_REALTIME, &value, &data) == -1)
-        perror("timerfd_add");
-}
+/* define */
+#define GET \
+    "GET / HTTP/1.1\r\n" \
+    "Host: money.163.com\r\n" \
+    "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/* ;q=0.8\r\n" \
+    "User-Agent: Lynx/2.8.7pre.5 libwww-FM/2.14 SSL-MM/1.4.1\r\n" \
+    "Accept-Language: zh-CN\r\n\r\n"
 
 
 int main(void)
@@ -64,13 +36,20 @@ int main(void)
         return  -1;
     }
 
-    Evdata  data;
+    Evdata      data;
 
-    data.handle = signal_get;
+    data.handle = write_header;
     data.args = &events;
 
-    if (signalfd_add(&events, SIGINT, &data) == -1) {
-        perror("signalfd_add");
+    struct sockaddr_in  addr;
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(80);
+    addr.sin_addr.s_addr = inet_addr("183.6.245.191");
+
+    if (sockfd_connect_add(&events, EVWRITE, EPOLLOUT,
+        (Sockaddr *)&addr, &data) == -1) {
+        perror("sockfd_connect_add");
         return  -1;
     }
 
@@ -83,5 +62,37 @@ int main(void)
     }
 
     return  1;
+}
+
+
+void write_header(int32_t fd, void *params)
+{
+    Events *events = (Events *)params;
+
+    if (write(fd, GET, strlen(GET)) == -1) {
+        perror("write");
+        return;
+    }
+
+    Evdata  data;
+
+    data.handle = read_html;
+    data.args = events;
+
+    events_ctl(events, fd, EPOLL_CTL_DEL, EVWRITE, 0, NULL);
+    events_ctl(events, fd, EPOLL_CTL_ADD, EVREAD, DEFEVENT, &data);
+}
+
+
+void read_html(int32_t fd, void *params)
+{
+    Events *events = (Events *)params;
+    char    buffer[BUFSIZ] = {0};
+
+    read(fd, buffer, BUFSIZ - 1);
+
+    printf(buffer);
+
+    events_stop_run(events);
 }
 
