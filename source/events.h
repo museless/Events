@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "eventbase.h"
 #include "eventsaver.h"
 
 
@@ -73,8 +72,8 @@ bool    events_destroy(Events *events)
 bool    events_run(Events *events, int32_t times, int32_t timeout)
         __attribute__((nonnull(1)));
 
-bool    events_ctl(Events *events, int32_t fd, 
-            int32_t op, int32_t type, uint32_t event, Evdata *data)
+bool    events_ctl(Events *events, 
+            int32_t fd, int32_t op, uint32_t event, Evdata *data)
         __attribute__((nonnull(1)));
 
 void    events_stop_run(Events *events)

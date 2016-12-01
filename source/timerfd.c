@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.24 23:30
+ *     modification time: 2016.12.01 23:30
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -54,8 +54,7 @@ int32_t timerfd_add(Events *events,
     if (tfd == -1)
         return  -1;
 
-    if (!events_ctl(events, tfd,
-            EPOLL_CTL_ADD, EVREAD, DEFEVENT, data)) {
+    if (!events_ctl(events, tfd, EPOLL_CTL_ADD, DEFEVENT, data)) {
         close(tfd);
         return  -1;
     }

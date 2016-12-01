@@ -37,7 +37,7 @@
 -*---------------------------------------------*/
 
 /*-----sockfd_bind_add-----*/
-int32_t sockfd_bind_add(Events *events, int32_t type,
+int32_t sockfd_bind_add(Events *events,
         int32_t ev, Sockaddr *addr, int32_t backlog, Evdata *data)
 {
     int32_t sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,7 +55,7 @@ int32_t sockfd_bind_add(Events *events, int32_t type,
         return  -1;
     }
 
-    if (!events_ctl(events, sock, EPOLL_CTL_ADD, type, ev, data)) {
+    if (!events_ctl(events, sock, EPOLL_CTL_ADD, ev, data)) {
         close(sock);
         return  -1;
     }
@@ -66,7 +66,7 @@ int32_t sockfd_bind_add(Events *events, int32_t type,
 
 /*-----sockfd_connect_add-----*/
 int32_t sockfd_connect_add(Events *events,
-        int32_t type, int32_t ev, Sockaddr *addr, Evdata *data)
+        int32_t ev, Sockaddr *addr, Evdata *data)
 {
     int32_t sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -78,7 +78,7 @@ int32_t sockfd_connect_add(Events *events,
         return  -1;
     }
 
-    if (!events_ctl(events, sock, EPOLL_CTL_ADD, type, ev, data)) {
+    if (!events_ctl(events, sock, EPOLL_CTL_ADD, ev, data)) {
         close(sock);
         return  -1;
     }

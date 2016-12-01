@@ -1,10 +1,10 @@
 /*---------------------------------------------
- *     modification time: 2016.11.28 15:30
+ *     modification time: 2016.12.01 23:30
  *     mender: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *     file: fdhash.h 
+ *     file: sockfd.h 
  *     creation time: 2016.11.28 15:30
  *     author: Muse 
 -*---------------------------------------------*/
@@ -42,11 +42,11 @@ typedef struct sockaddr Sockaddr;
  *            Part Four: Function
 -*---------------------------------------------*/
 
-int32_t sockfd_bind_add(Events *events, int32_t type,
-        int32_t ev, Sockaddr *addr, int32_t backlog, Evdata *data)
-        __attribute__((nonnull(1, 4, 6)));
+int32_t sockfd_bind_add(Events *events,
+            int32_t ev, Sockaddr *addr, int32_t backlog, Evdata *data)
+        __attribute__((nonnull(1, 3, 5)));
 
 int32_t sockfd_connect_add(Events *events,
-        int32_t type, int32_t ev, Sockaddr *addr, Evdata *data)
-        __attribute__((nonnull(1, 4, 5)));
+            int32_t ev, Sockaddr *addr, Evdata *data)
+        __attribute__((nonnull(1, 3, 4)));
 

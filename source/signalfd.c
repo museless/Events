@@ -47,8 +47,7 @@ int32_t signalfd_add(Events *events, int32_t signum, Evdata *data)
     if ((sigfd = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC)) == -1)
         return  -1;
 
-    if (!events_ctl(events, sigfd,
-            EPOLL_CTL_ADD, EVREAD, DEFEVENT, data)) {
+    if (!events_ctl(events, sigfd, EPOLL_CTL_ADD, DEFEVENT, data)) {
         close(sigfd);
         return  -1;
     }

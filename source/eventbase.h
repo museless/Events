@@ -47,25 +47,10 @@
 
 
 /*---------------------------------------------
- *               Part Two: Enum 
--*---------------------------------------------*/
-
-enum EVTYPE {
-    EVMIN = 0,
-
-    EVREAD = EVMIN,
-    EVWRITE,
-    EVERROR,
-
-    EVMAX = EVERROR,
-};
-
-
-/*---------------------------------------------
  *            Part Three: Typedef
 -*---------------------------------------------*/
 
-typedef void (*ev_handle)(int32_t fd, void *args);
+typedef void (*ev_handle)(int32_t fd, int32_t event, void *args);
 
 typedef struct evdata   Evdata;
 

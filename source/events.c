@@ -41,20 +41,6 @@
     }
 
 
-#define EVENT_ACTION(events, triggered, type) \
-    if (triggered) { \
-        Event  *curr = eventsaver_search(saver, type, fd); \
-\
-        if (curr) \
-            curr->data.handle(fd, curr->data.args); \
-\
-        if (events->ev_isstop) { \
-            times = 0; \
-            break; \
-        } \
-    }
-
-
 /*---------------------------------------------
  *           Part Two: Local data 
 -*---------------------------------------------*/
@@ -67,7 +53,7 @@ static Evdata   DefaultEvdata = {NULL, NULL};
 -*---------------------------------------------*/
 
 static bool _events_ctl(Eventsaver *saver,
-            int32_t fd, int32_t op, int32_t type, Evdata *data);
+            int32_t fd, int32_t op, int32_t ev, Evdata *data);
 
 
 /*---------------------------------------------
@@ -143,10 +129,17 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
         for (int idx = 0; idx < nevent; idx++) {
             Epollev *ev = evlist + idx;
             int32_t  fd = ev->data.fd;
+            Event   *event = eventsaver_search(saver, fd); 
 
-            EVENT_ACTION(events, ev->events & EPOLLIN, EVREAD)
-            EVENT_ACTION(events, ev->events & EPOLLOUT, EVWRITE)
-            EVENT_ACTION(events, ev->events & EPOLLERR, EVERROR)
+            if (event) {
+                if (event)
+                    event->data.handle(fd, ev->events, event->data.args);
+
+                if (events->ev_isstop) {
+                    times = 0;
+                    break;
+                }
+            }
         }
     }
 
@@ -167,7 +160,7 @@ bool events_run(Events *events, int32_t times, int32_t timeout)
 
 /*-----events_ctl-----*/
 bool events_ctl(Events *events, int32_t fd, 
-        int32_t op, int32_t type, uint32_t event, Evdata *data)
+        int32_t op, uint32_t event, Evdata *data)
 {
     IS_INVALID_EVENT(events);
 
@@ -179,7 +172,7 @@ bool events_ctl(Events *events, int32_t fd,
     if (epoll_ctl(events->ep_fd, op, fd, &ev) == -1)
         return  false;
 
-    return  _events_ctl(&events->ev_saver, fd, op, type, data);
+    return  _events_ctl(&events->ev_saver, fd, op, event, data);
 }
 
 
@@ -193,8 +186,8 @@ void events_stop_run(Events *events)
 /*-----eventfd_ctl-----*/
 bool eventfd_ctl(Events *events, int32_t fd, Evdata *data)
 {
-    return  events_ctl(events, fd,\
-        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, EVREAD, DEFEVENT, data);
+    return  events_ctl(events, fd,
+        data ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, DEFEVENT, data);
 }
 
 
@@ -206,30 +199,31 @@ bool eventfd_ctl(Events *events, int32_t fd, Evdata *data)
 -*---------------------------------------------*/
 
 /*-----_events_ctl-----*/
-bool _events_ctl(Eventsaver *saver, 
-        int32_t fd, int32_t op, int32_t type, Evdata *data)
+bool _events_ctl(Eventsaver *saver,
+        int32_t fd, int32_t op, int32_t ev, Evdata *data)
 {
     if (!data)
         data = &DefaultEvdata;
 
     switch (op) {
         case EPOLL_CTL_ADD:
-            return  eventsaver_add(saver, type, fd, data);
+            return  eventsaver_add(saver, fd, ev, data);
                     
         case EPOLL_CTL_MOD:
             {
-                Event  *ev = eventsaver_search(saver, type, fd);
+                Event  *ev = eventsaver_search(saver, fd);
 
                 if (ev) {
                     ev->data = *data;
                     return  true;
                 }
 
+                errno = ENODATA;
                 return  false;
             }
 
         case EPOLL_CTL_DEL:
-            return  eventsaver_delete(saver, type, fd);
+            return  eventsaver_delete(saver, fd);
 
         default:
             errno = EINVAL;

@@ -15,7 +15,7 @@ EXLIB	= libevents.so
 OEXAM	= example.c 
 
 EXOBJ	= source/events.o \
-		  source/eventsaver.o source/fdhash.o source/mempool.o \
+		  source/eventsaver.o source/mempool.o \
 		  source/signalfd.o source/timerfd.o source/sockfd.o
 
 # phony
@@ -38,9 +38,6 @@ source/events.o: source/events.c
 	$(CC) $(CFLAGS) $(CCOM) $(CINC) -o $@ $<
 
 source/eventsaver.o: source/eventsaver.c
-	$(CC) $(CFLAGS) $(CCOM) $(CINC) -o $@ $<
-
-source/fdhash.o: source/fdhash.c
 	$(CC) $(CFLAGS) $(CCOM) $(CINC) -o $@ $<
 
 source/mempool.o: source/mempool.c

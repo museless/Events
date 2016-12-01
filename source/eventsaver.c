@@ -1,79 +1,84 @@
 /*---------------------------------------------
- *     modification time: 2016.11.22 01:10
+ *     modification time: 2016.12.01 22:30
  *     mender: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *     file: eventsave.c
- *     creation time: 2016.11.13 12:50
+ *     file: eventsaver.c
+ *     creation time: 2016.12.01 22:30
  *     author: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *       Source file content Six part
+ *       Source file content Seven part
  *
  *       Part Zero:  Include
  *       Part One:   Define 
  *       Part Two:   Local data
  *       Part Three: Local function
  *
- *       Part Four:  Eventsaver control api
+ *       Part Four:  Eventsaver control
  *       Part Five:  Eventsaver operate
+ *       Part Six:   Eventsaver helper
  *
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *             Part Zero: Include
+ *            Part Zero: Include
 -*---------------------------------------------*/
 
 #include "eventsaver.h"
 
 
 /*---------------------------------------------
- *              Part One: Define
+ *             Part One: Define
 -*---------------------------------------------*/
 
-#define IS_INVAILD_SAVER(saver, ret) \
-    if (!(saver)) { \
+#define CHECK_SAVER_VAILD(saver, ret) \
+    if (!saver) { \
         errno = EINVAL; \
-        return  (ret); \
+        return  ret; \
     }
 
-#define IS_INVAILD_TYPE(type, ret) \
-    if (type < EVMIN || type > EVMAX) { \
-        errno = EINVAL; \
-        return  (ret); \
-    }
+#define CLEAR_NODES(saver) \
+    for (int idx = 0; idx < NUM_NODES; idx++) \
+        saver->nodes[idx].head = NULL;
+
+#define LOCK_SAVER(saver) \
+    mato_lock((saver)->lock);
+
+#define UNLOCK_SAVER(saver) \
+    mato_unlock((saver)->lock);
+
+#define HASH() \
+    (fd % NUM_NODES)
 
 
 /*---------------------------------------------
- *         Part Three: Local function 
+ *         Part Three: Local function
 -*---------------------------------------------*/
 
-static Fdhash  *_hash_select(Eventsaver *saver, uint8_t type);
+static Event   *_traverse(Eventsaver *saver, int32_t fd, bool is_del);
 
 
 /*---------------------------------------------
- *    Part Four: Eventsaver control api
+ *         Part Four: Eventsaver control 
  *
- *          1. eventsaver_create
- *          2. eventsaver_destroy
+ *             1. eventsaver_create
+ *             2. eventsaver_destroy
  *
 -*---------------------------------------------*/
 
 /*-----eventsaver_create-----*/
 bool eventsaver_create(Eventsaver *saver)
 {
-    IS_INVAILD_SAVER(saver, false);
+    CHECK_SAVER_VAILD(saver, false);
 
-    if (!fdhash_init(&saver->readhash, sizeof(Event)))
+    if (!mmdp_create(&saver->mem, DEF_CHUNKSIZE))
         return  false;
 
-    if (!fdhash_init(&saver->writehash, sizeof(Event)))
-        return  false;
-
-    if (!fdhash_init(&saver->errorhash, sizeof(Event)))
-        return  false;
+    mato_init(saver->lock, 1);
+    CLEAR_NODES(saver);
 
     return  true;
 }
@@ -82,23 +87,20 @@ bool eventsaver_create(Eventsaver *saver)
 /*-----eventsaver_destroy-----*/
 bool eventsaver_destroy(Eventsaver *saver)
 {
-    IS_INVAILD_SAVER(saver, false);
+    CHECK_SAVER_VAILD(saver, false);
+    LOCK_SAVER(saver);
 
-    if (!fdhash_destroy(&saver->readhash))
-        return  false;
+    mmdp_free_pool(&saver->mem);
+    CLEAR_NODES(saver);
 
-    if (!fdhash_destroy(&saver->writehash))
-        return  false;
-
-    if (!fdhash_destroy(&saver->errorhash))
-        return  false;
+    UNLOCK_SAVER(saver);
 
     return  true;
 }
 
 
 /*---------------------------------------------
- *      Part Five: Eventsaver operate
+ *         Part Five: Eventsaver operate 
  *
  *          1. eventsaver_add
  *          2. eventsaver_delete
@@ -107,64 +109,90 @@ bool eventsaver_destroy(Eventsaver *saver)
 -*---------------------------------------------*/
 
 /*-----eventsaver_add-----*/
-bool eventsaver_add(Eventsaver *saver,
-        uint8_t type, int32_t fd, Evdata *data) 
+Event *eventsaver_add(Eventsaver *saver, int32_t fd, int32_t ev, Evdata *data)
 {
-    if (!saver || !data) {
-        errno = EINVAL;
+    CHECK_SAVER_VAILD(saver, false);
+    LOCK_SAVER(saver);
+
+    int32_t     offset = HASH();
+    Event      *node = mmdp_malloc(&saver->mem, sizeof(Event));
+
+    if (!node) {
+        UNLOCK_SAVER(saver);
         return  false;
     }
 
-    IS_INVAILD_TYPE(type, false);
+    node->fd = fd;
+    node->ev = ev;
+    node->data = *data;
 
-    Fdhash     *hash = _hash_select(saver, type);
-    Datanode   *node = fdhash_insert(hash, fd);
+    node->next = saver->nodes[offset].head;
+    saver->nodes[offset].head = node;
+    UNLOCK_SAVER(saver);
 
-    ((Event *)node)->data = *data;
+    return  node;
+}
+
+
+/*-----eventsaver_delete-----*/
+bool eventsaver_delete(Eventsaver *saver, int32_t fd)
+{
+    CHECK_SAVER_VAILD(saver, false);
+    LOCK_SAVER(saver);
+    _traverse(saver, fd, true);
+    UNLOCK_SAVER(saver);
 
     return  true;
 }
 
 
-/*-----eventsaver_delete-----*/
-bool eventsaver_delete(Eventsaver *saver, uint8_t type, int32_t fd)
-{
-    IS_INVAILD_SAVER(saver, false);
-    IS_INVAILD_TYPE(type, false);
-
-    return  fdhash_delete(_hash_select(saver, type), fd);
-}
-
-
 /*-----eventsaver_search-----*/
-Event *eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
+Event *eventsaver_search(Eventsaver *saver, int32_t fd)
 {
-    IS_INVAILD_SAVER(saver, false);
-    IS_INVAILD_TYPE(type, false);
+    CHECK_SAVER_VAILD(saver, NULL);
+    LOCK_SAVER(saver);
 
-    return  (Event *)fdhash_search(_hash_select(saver, type), fd);
+    Event  *result = _traverse(saver, fd, false);
+
+    UNLOCK_SAVER(saver);
+
+    return  result;
 }
 
 
 /*---------------------------------------------
- *             Part Six: Helper 
+ *         Part Six: Eventsaver helper
  *
- *             1. _hash_select 
+ *          1. _traverse
  *
 -*---------------------------------------------*/
 
-/*-----_hash_select-----*/
-Fdhash *_hash_select(Eventsaver *saver, uint8_t type)
+/*-----_traverse-----*/
+Event *_traverse(Eventsaver *saver, int32_t fd, bool is_del)
 {
-    switch (type) {
-        case EVREAD:
-            return  &saver->readhash;
+    int32_t     offset = HASH();
+    Event      *node = saver->nodes[offset].head;
+    Event      *last = NULL;
 
-        case EVWRITE:
-            return  &saver->writehash;
+    while (node) {
+        if (node->fd == fd) {
+            if (is_del) {
+                if (last) {
+                    last->next = node->next;
 
-        case EVERROR:
-            return  &saver->errorhash;
+                } else {
+                    saver->nodes[offset].head = NULL;
+                }
+
+                mmdp_free(&saver->mem, node);
+                node = NULL;
+            }
+
+            return  node;
+        }
+
+        last = node;
+        node = node->next;
     }
 
     return  NULL;

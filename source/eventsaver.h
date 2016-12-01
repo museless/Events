@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.15 09:15
+ *     modification time: 2016.11.13 23:10
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -27,8 +27,22 @@
 
 #pragma once
 
-#include "fdhash.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include "mempool.h"
 #include "eventbase.h"
+
+
+/*---------------------------------------------
+ *            Part One: Define
+-*---------------------------------------------*/
+
+#define NUM_NODES   0x25
 
 
 /*---------------------------------------------
@@ -36,6 +50,7 @@
 -*---------------------------------------------*/
 
 typedef struct eventsaver   Eventsaver;
+typedef struct savernode    Hashnode; 
 typedef struct event        Event;
 
 
@@ -44,17 +59,21 @@ typedef struct event        Event;
 -*---------------------------------------------*/
 
 struct event {
-    Datanode   *next;
-    int32_t     ref;
+    Event      *next;
+    int32_t     fd;
+    int32_t     ev;
 
     Evdata      data;
 };
 
+struct savernode {
+    Event      *head;
+};
 
 struct eventsaver {
-    Fdhash  readhash;
-    Fdhash  writehash;
-    Fdhash  errorhash;
+    Mempool     mem;
+    MATOS       lock;
+    Hashnode    nodes[NUM_NODES];
 };
 
 
@@ -62,20 +81,19 @@ struct eventsaver {
  *            Part Four: Function
 -*---------------------------------------------*/
 
-bool    eventsaver_create(Eventsaver *saver)
-        __attribute__((nonnull(1)));
+bool        eventsaver_create(Eventsaver *saver)
+            __attribute__((nonnull(1)));
 
-bool    eventsaver_destroy(Eventsaver *saver)
-        __attribute__((nonnull(1)));
+bool        eventsaver_destroy(Eventsaver *saver)
+            __attribute__((nonnull(1)));
 
-bool    eventsaver_add(Eventsaver *saver,
-            uint8_t type, int32_t fd, Evdata *data) 
-        __attribute__((nonnull(1, 4)));
+Event      *eventsaver_add(Eventsaver *saver,
+                int32_t fd, int32_t ev, Evdata *data)
+            __attribute__((nonnull(1, 4)));
 
-bool    eventsaver_delete(Eventsaver *saver, uint8_t type, int32_t fd)
-        __attribute__((nonnull(1)));
+bool        eventsaver_delete(Eventsaver *saver, int32_t fd)
+            __attribute__((nonnull(1)));
 
-Event  *eventsaver_search(Eventsaver *saver, uint8_t type, int32_t fd)
-        __attribute__((nonnull(1)));
-
+Event      *eventsaver_search(Eventsaver *saver, int32_t fd)
+            __attribute__((nonnull(1)));
 
