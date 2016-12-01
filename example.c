@@ -14,8 +14,8 @@
 
 
 /* static */
-static void write_header(int32_t fd, void *args); 
-static void read_html(int32_t fd, void *args);
+static void write_header(int32_t fd, int ev, void *args); 
+static void read_html(int32_t fd, int ev, void *args);
 
 
 /* define */
@@ -47,8 +47,7 @@ int main(void)
     addr.sin_port = htons(80);
     addr.sin_addr.s_addr = inet_addr("183.6.245.191");
 
-    if (sockfd_connect_add(&events, EVWRITE, EPOLLOUT,
-        (Sockaddr *)&addr, &data) == -1) {
+    if (sockfd_connect_add(&events, EPOLLOUT, (Sockaddr *)&addr, &data) == -1) {
         perror("sockfd_connect_add");
         return  -1;
     }
@@ -65,7 +64,7 @@ int main(void)
 }
 
 
-void write_header(int32_t fd, void *params)
+void write_header(int32_t fd, int ev, void *params)
 {
     Events *events = (Events *)params;
 
@@ -79,19 +78,22 @@ void write_header(int32_t fd, void *params)
     data.handle = read_html;
     data.args = events;
 
-    events_ctl(events, fd, EPOLL_CTL_DEL, EVWRITE, 0, NULL);
-    events_ctl(events, fd, EPOLL_CTL_ADD, EVREAD, DEFEVENT, &data);
+    if (!eventfd_ctl(events, fd, &data))
+        perror("eventfd_ctl");
 }
 
 
-void read_html(int32_t fd, void *params)
+void read_html(int32_t fd, int ev, void *params)
 {
     Events *events = (Events *)params;
     char    buffer[BUFSIZ] = {0};
 
     read(fd, buffer, BUFSIZ - 1);
 
-    printf(buffer);
+    printf("%s\n", buffer);
+
+    read(fd, buffer, BUFSIZ - 1);
+    printf("%s\n", buffer);
 
     events_stop_run(events);
 }
