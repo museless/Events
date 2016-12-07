@@ -4,11 +4,11 @@ CFLAGS  = -g -Wall -std=c99 -D_DEFAULT_SOURCE -pthread
 CINC	= -I source/
 CCOM	= -fPIC -c
 CLIB	= -shared
-CILIB	= -L/Code/C/Events -levents
+CILIB	= -lepollevents
 
 # elf #
 EXEV	= test
-EXLIB	= libevents.so
+EXLIB	= /usr/lib64/libepollevents.so
 
 
 # obj #
@@ -19,10 +19,10 @@ EXOBJ	= source/events.o \
 		  source/signalfd.o source/timerfd.o source/sockfd.o
 
 # phony
-.phony:	build object clean
+.phony:	build lib clean
 
 # exec
-object	: $(EXLIB)
+lib		: $(EXLIB)
 build	: $(EXEV)
 clean	:
 	rm -f test $(EXOBJ) $(EXLIB)
