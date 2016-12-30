@@ -8,7 +8,7 @@ CILIB	= -lepollevents
 
 # elf #
 EXEV	= test
-EXLIB	= /usr/lib64/libepollevents.so
+EXLIB	= /usr/local/lib/libepollevents.so
 
 
 # obj #
