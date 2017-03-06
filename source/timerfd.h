@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2016.11.24 23:35
+ *     modification time: 2017.03.06 13:20
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -10,19 +10,7 @@
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *       Source file content Five part
- *
- *       Part Zero:  Include
- *       Part One:   Define 
- *       Part Two:   Typedef
- *       Part Three: Struct
- *
- *       Part Four:  Function
- *
--*---------------------------------------------*/
-
-/*---------------------------------------------
- *             Part Zero: Include
+ *                  Include
 -*---------------------------------------------*/
 
 #pragma once
@@ -32,7 +20,7 @@
 
 
 /*---------------------------------------------
- *            Part Two: Typedef
+ *                  Typedef
 -*---------------------------------------------*/
 
 typedef struct timespec     Timespec;
@@ -40,7 +28,7 @@ typedef struct itimerspec   Itimerspec;
 
 
 /*---------------------------------------------
- *            Part Four: Function
+ *                  Function
 -*---------------------------------------------*/
 
 int32_t timerfd_add(Events *events,

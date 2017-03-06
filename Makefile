@@ -9,7 +9,7 @@ CILIB	= -lepollevents
 # elf #
 EXEV	= test
 EXLIB	= /usr/local/lib/libepollevents.so
-
+INCLDIC	= /usr/include/events
 
 # obj #
 OEXAM	= example.c 
@@ -19,13 +19,17 @@ EXOBJ	= source/events.o \
 		  source/signalfd.o source/timerfd.o source/sockfd.o
 
 # phony
-.phony:	build lib clean
+.phony:	build buildinc lib clean
 
 # exec
-lib		: $(EXLIB)
-build	: $(EXEV)
+buildinc:
+	mkdir $(INCLDIC)
+	cp source/*.h $(INCLDIC)
+
+lib		: $(EXLIB) buildinc
+build	: lib $(EXEV)
 clean	:
-	rm -f test $(EXOBJ) $(EXLIB)
+	rm -rf test $(EXOBJ) $(EXLIB) $(INCLDIC)
 
 $(EXEV) : $(OEXAM)
 	$(CC) $(CFLAGS) $(CINC) $(CILIB) $(OEXAM) -o $(EXEV) 

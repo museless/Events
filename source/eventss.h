@@ -1,11 +1,12 @@
 /*---------------------------------------------
- *     modification time: 2017.03.06 13:25
+ *     modification time: 2017.03.06 13:10
  *     mender: Muse
 -*---------------------------------------------*/
 
 /*---------------------------------------------
- *     file: signalfd.h 
- *     creation time: 2016.11.13 23:10
+ *     file: eventss.h 
+ *     intro: include it for your program
+ *     creation time: 2016.11.28 15:00
  *     author: Muse 
 -*---------------------------------------------*/
 
@@ -16,14 +17,8 @@
 #pragma once
 
 #include "events.h"
-#include <signal.h>
-#include <sys/signalfd.h>
+#include "timerfd.h"
+#include "signalfd.h"
+#include "sockfd.h"
 
-
-/*---------------------------------------------
- *                  Function
--*---------------------------------------------*/
-
-int32_t signalfd_add(Events *event, int32_t signum, Evdata *data)
-        __attribute__((nonnull(1, 3)));
 
