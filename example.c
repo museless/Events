@@ -10,21 +10,18 @@
 -*---------------------------------------------*/
 
 #include <events/eventss.h>
-#include <arpa/inet.h>
 
 
 /* static */
-static void write_header(int32_t fd, int ev, void *args); 
-static void read_html(int32_t fd, int ev, void *args);
+static void come_connect(int32_t fd, int ev, void *args); 
+static void writeback(int32_t fd, int ev, void *args);
 
 
 /* define */
-#define GET \
-    "GET / HTTP/1.1\r\n" \
-    "Host: money.163.com\r\n" \
-    "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/* ;q=0.8\r\n" \
-    "User-Agent: Lynx/2.8.7pre.5 libwww-FM/2.14 SSL-MM/1.4.1\r\n" \
-    "Accept-Language: zh-CN\r\n\r\n"
+#define ADDR    "127.0.0.1"
+#define PORT    8886
+
+#define HTTPRET "HTTP/1.1 200 OK\r\n\r\nHello world"
 
 
 int main(void)
@@ -36,23 +33,24 @@ int main(void)
         return  -1;
     }
 
-    Evdata      data;
+    Sockfd  sockfd;
 
-    data.handle = write_header;
-    data.args = &events;
+    sockfd.addr.sin_family = AF_INET;
+    sockfd.addr.sin_port = htons(PORT);
+    sockfd.addr.sin_addr.s_addr = inet_addr(ADDR);
 
-    struct sockaddr_in  addr;
+    sockfd.data.handle = come_connect;
+    sockfd.data.args = &events;
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(80);
-    addr.sin_addr.s_addr = inet_addr("183.6.245.191");
+    sockfd.ev = EPOLLIN;
+    sockfd.backlog = 8;
 
-    if (sockfd_connect_add(&events, EPOLLOUT, (Sockaddr *)&addr, &data) == -1) {
-        perror("sockfd_connect_add");
+    if (sockfd_bind(&events, &sockfd) == -1) {
+        perror("sockfd_bind_add");
         return  -1;
     }
 
-    if (!events_run(&events, INF_TIMES, -1))
+    if (!events_run(&events, INF_TIMES, INF_TIMES))
         perror("events_run");
 
     if (!events_destroy(&events)) {
@@ -64,37 +62,32 @@ int main(void)
 }
 
 
-void write_header(int32_t fd, int ev, void *params)
+void come_connect(int32_t fd, int ev, void *params)
 {
     Events *events = (Events *)params;
+    int32_t user = accept(fd, NULL, NULL);
 
-    if (write(fd, GET, strlen(GET)) == -1) {
-        perror("write");
+    if (user == -1)
         return;
-    }
 
     Evdata  data;
 
-    data.handle = read_html;
+    data.handle = writeback;
     data.args = events;
 
-    if (!eventfd_ctl(events, fd, &data))
-        perror("eventfd_ctl");
+    events_ctl(events, user, EPOLL_CTL_ADD, EPOLLOUT | EPOLLET, &data);
 }
 
 
-void read_html(int32_t fd, int ev, void *params)
+void writeback(int32_t fd, int ev, void *params)
 {
     Events *events = (Events *)params;
-    char    buffer[BUFSIZ] = {0};
+    char    buff[1024];
 
-    read(fd, buffer, BUFSIZ - 1);
+    read(fd, buff, 1024);
+    write(fd, HTTPRET, strlen(HTTPRET));
 
-    printf("%s\n", buffer);
-
-    read(fd, buffer, BUFSIZ - 1);
-    printf("%s\n", buffer);
-
-    events_stop_run(events);
+    eventfd_ctl(events, fd, NULL);
+    close(fd);
 }
 

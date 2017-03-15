@@ -1,5 +1,5 @@
 /*---------------------------------------------
- *     modification time: 2017.03.06 13:25
+ *     modification time: 2017.03.15 15:00
  *     mender: Muse
 -*---------------------------------------------*/
 
@@ -17,24 +17,39 @@
 
 #include "events.h"
 #include <sys/socket.h>
+#include <arpa/inet.h>
 
 
 /*---------------------------------------------
  *                  Typedef 
 -*---------------------------------------------*/
 
-typedef struct sockaddr Sockaddr;
+typedef struct sockaddr     Sockaddr;
+typedef struct sockaddr_in  Sockin;
+
+typedef struct sockfd       Sockfd;
+
+
+/*---------------------------------------------
+ *                  Typedef 
+-*---------------------------------------------*/
+
+struct sockfd {
+    int32_t ev;
+    Evdata  data;
+
+    Sockin  addr;
+    int32_t backlog;    /* use it for listen */
+};
 
 
 /*---------------------------------------------
  *                  Function
 -*---------------------------------------------*/
 
-int32_t sockfd_bind_add(Events *events,
-            int32_t ev, Sockaddr *addr, int32_t backlog, Evdata *data)
-        __attribute__((nonnull(1, 3, 5)));
+int32_t sockfd_bind(Events *events, Sockfd *sockfd)
+        __attribute__((nonnull(1, 2)));
 
-int32_t sockfd_connect_add(Events *events,
-            int32_t ev, Sockaddr *addr, Evdata *data)
-        __attribute__((nonnull(1, 3, 4)));
+int32_t sockfd_connect(Events *events, Sockfd *sockfd)
+        __attribute__((nonnull(1, 2)));
 
