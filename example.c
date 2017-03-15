@@ -28,7 +28,7 @@ int main(void)
 {
     Events  events;
 
-    if (!events_create(&events, 16)) {
+    if (!events_create(&events, 32)) {
         perror("events_create");
         return  -1;
     }
